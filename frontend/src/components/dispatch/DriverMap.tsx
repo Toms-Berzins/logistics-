@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useDriverTracking, DriverLocation, DriverStatus } from '../../hooks/useDriverTracking';
+import { Card, Button } from '../ui';
+import ConnectionStatus from '../realtime/ConnectionStatus';
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -465,55 +467,59 @@ const DriverMap: React.FC<DriverMapProps> = ({
       <div ref={mapContainerRef} className="w-full h-full" />
       
       {/* Connection Status */}
-      <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 z-10">
-        <div className="flex items-center space-x-2">
-          <div className={`w-3 h-3 rounded-full ${
-            isConnected ? 'bg-green-500' : 'bg-red-500'
-          }`} />
-          <span className="text-sm font-medium">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          Signal: {connectionQuality}
-        </div>
-        {lastError && (
-          <div className="text-xs text-red-500 mt-1">
-            Error: {lastError.message}
-          </div>
-        )}
+      <div className="absolute top-4 left-4 z-10">
+        <Card padding="sm" className="bg-white/95 backdrop-blur-sm">
+          <ConnectionStatus
+            isConnected={isConnected}
+            connectionQuality={connectionQuality}
+            lastError={lastError}
+            showDetails={false}
+          />
+        </Card>
       </div>
       
       {/* Driver Count */}
-      <div className="absolute top-4 right-20 bg-white rounded-lg shadow-lg p-3 z-10">
-        <div className="text-sm font-medium">
-          Active Drivers: {driverLocations.size}
-        </div>
-        <div className="text-xs text-gray-500">
-          Online: {Array.from(driverStatuses.values()).filter(s => s.isOnline).length}
-        </div>
+      <div className="absolute top-4 right-20 z-10">
+        <Card padding="sm" className="bg-white/95 backdrop-blur-sm">
+          <div className="flex flex-col gap-1">
+            <div className="text-sm font-medium text-neutral-900">
+              Active Drivers: {driverLocations.size}
+            </div>
+            <div className="text-xs text-neutral-500">
+              Online: {Array.from(driverStatuses.values()).filter(s => s.isOnline).length}
+            </div>
+          </div>
+        </Card>
       </div>
       
       {/* Map Controls */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-2 z-10">
-        <button
-          onClick={fitToDrivers}
-          className="block w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded mb-2"
-          disabled={driverLocations.size === 0}
-        >
-          Fit to Drivers
-        </button>
-        <button
-          onClick={() => {
-            if (mapRef.current) {
-              const center = mapRef.current.getCenter();
-              handleFindNearby([center.lng, center.lat]);
-            }
-          }}
-          className="block w-full px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded"
-        >
-          Find Nearby
-        </button>
+      <div className="absolute bottom-4 left-4 z-10">
+        <Card padding="sm" className="bg-white/95 backdrop-blur-sm">
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={fitToDrivers}
+              variant="outline"
+              size="sm"
+              disabled={driverLocations.size === 0}
+              className="text-primary-600 hover:bg-primary-50"
+            >
+              Fit to Drivers
+            </Button>
+            <Button
+              onClick={() => {
+                if (mapRef.current) {
+                  const center = mapRef.current.getCenter();
+                  handleFindNearby([center.lng, center.lat]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="text-success-600 hover:bg-success-50"
+            >
+              Find Nearby
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );
