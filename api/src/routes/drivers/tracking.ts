@@ -271,7 +271,6 @@ router.post('/:driverId/status',
         success: true,
         message: 'Status updated successfully',
         data: {
-          driverId,
           ...status,
           lastLocationUpdate: status.lastLocationUpdate.toISOString(),
         },

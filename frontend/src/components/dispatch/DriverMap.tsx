@@ -240,11 +240,13 @@ const DriverMap: React.FC<DriverMapProps> = ({
       ` : ''}
     `;
 
-    // Add pulsing animation for recent updates
-    const updateTime = new Date(driver.timestamp).getTime();
-    const now = Date.now();
-    if (now - updateTime < 30000) { // Last 30 seconds
-      el.style.animation = 'pulse 2s infinite';
+    // Add pulsing animation for recent updates (client-side only)
+    if (typeof window !== 'undefined') {
+      const updateTime = new Date(driver.timestamp).getTime();
+      const now = Date.now();
+      if (now - updateTime < 30000) { // Last 30 seconds
+        el.style.animation = 'pulse 2s infinite';
+      }
     }
 
     // Add hover effects
@@ -264,7 +266,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
   // Create popup content for driver
   const createDriverPopup = useCallback((driver: DriverLocation, status?: DriverStatus) => {
     const lastUpdate = new Date(driver.timestamp);
-    const timeDiff = Math.floor((Date.now() - lastUpdate.getTime()) / 1000);
+    const timeDiff = typeof window !== 'undefined' ? Math.floor((Date.now() - lastUpdate.getTime()) / 1000) : 0;
     
     let timeText = '';
     if (timeDiff < 60) {

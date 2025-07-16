@@ -152,7 +152,6 @@ export class DriverEventHandler {
 
       // Broadcast to dispatchers in real-time
       this.broadcastToDispatchers(driverData.companyId, 'driver:location_updated', {
-        driverId: driverData.driverId,
         ...location,
         timestamp: location.timestamp.toISOString(),
       });
@@ -199,7 +198,6 @@ export class DriverEventHandler {
       // Broadcast only the latest location to dispatchers
       const latestLocation = locations[locations.length - 1];
       this.broadcastToDispatchers(driverData.companyId, 'driver:location_updated', {
-        driverId: driverData.driverId,
         ...latestLocation,
         timestamp: latestLocation.timestamp.toISOString(),
         batchCount: locations.length,
@@ -240,7 +238,6 @@ export class DriverEventHandler {
 
       // Broadcast status change to dispatchers
       this.broadcastToDispatchers(driverData.companyId!, 'driver:status_updated', {
-        driverId: driverData.driverId,
         ...status,
         lastLocationUpdate: status.lastLocationUpdate.toISOString(),
       });
@@ -307,8 +304,8 @@ export class DriverEventHandler {
       
       if (location) {
         socket.emit('driver_location', {
-          driverId: payload.driverId,
           ...location,
+          driverId: payload.driverId,
           timestamp: location.timestamp.toISOString(),
         });
       } else {

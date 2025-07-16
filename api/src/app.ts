@@ -13,6 +13,7 @@ import { databaseConfig, testConnection } from './config/database';
 import { redisClient } from './config/redis';
 import { healthRoutes } from './routes/health';
 import { trackingRoutes } from './routes/drivers/tracking';
+import mappingRoutes from './routes/mapping';
 import { errorHandler } from './middleware/errorHandler';
 import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
@@ -64,6 +65,7 @@ app.use(session({
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/drivers', trackingRoutes);
+app.use('/api/mapping', mappingRoutes);
 
 // Socket.io
 socketHandler(io);
