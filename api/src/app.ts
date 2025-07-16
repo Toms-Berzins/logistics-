@@ -12,8 +12,10 @@ import dotenv from 'dotenv';
 import { databaseConfig, testConnection } from './config/database';
 import { redisClient } from './config/redis';
 import { healthRoutes } from './routes/health';
+import { trackingRoutes } from './routes/drivers/tracking';
 import { errorHandler } from './middleware/errorHandler';
 import { socketHandler } from './sockets/socketHandler';
+import { performanceMonitor } from './utils/performanceMonitor';
 
 dotenv.config();
 
@@ -61,6 +63,7 @@ app.use(session({
 
 // Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/drivers', trackingRoutes);
 
 // Socket.io
 socketHandler(io);
@@ -78,6 +81,11 @@ server.listen(PORT, async () => {
     console.log('✅ Redis connected successfully');
     
     console.log(`🚀 Server running on port ${PORT}`);
+    
+    // Start performance monitoring in production
+    if (process.env.NODE_ENV === 'production') {
+      performanceMonitor.startMonitoring();
+    }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
