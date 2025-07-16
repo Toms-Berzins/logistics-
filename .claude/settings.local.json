@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm install:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose:*)",
+      "Bash(cp:*)",
+      "Bash(copy \"api\\.env.example\" \"api\\.env\")",
+      "Bash(npx ts-node:*)",
+      "Bash(timeout 10 npx ts-node src/app.ts)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(npm test)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
