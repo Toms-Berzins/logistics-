@@ -7,22 +7,22 @@ export interface Zone {
   priority: number;
   zoneType: 'standard' | 'express' | 'premium' | 'restricted';
   serviceLevel: 'normal' | 'express' | 'same_day';
-  
+
   // Pricing
   baseDeliveryFee?: number;
   perMileRate?: number;
   minimumOrder?: number;
   maximumDistanceKm?: number;
-  
+
   // Time restrictions
   activeHours?: TimeRestriction;
   timezone: string;
-  
+
   // Statistics
   areaSqKm: number;
   estimatedAddresses?: number;
   avgDeliveryTimeMinutes?: number;
-  
+
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -36,17 +36,17 @@ export interface Geofence {
   boundary: GeoJSON.Polygon;
   fenceType: 'delivery_zone' | 'restricted_area' | 'depot' | 'customer_location' | 'traffic_zone';
   priority: number;
-  
+
   // Alert configuration
   alertOnEntry: boolean;
   alertOnExit: boolean;
   alertOnDwell: boolean;
   dwellTimeMinutes: number;
-  
+
   // Time-based restrictions
   activeHours?: TimeRestriction;
   timezone: string;
-  
+
   metadata?: Record<string, any>;
   isActive: boolean;
   createdBy: string;
@@ -76,12 +76,12 @@ export interface ZonePricing {
   weightClass?: string;
   dayOfWeek?: number; // 0=Sunday, 6=Saturday
   hourOfDay?: number; // 0-23
-  
+
   baseFee: number;
   perMileRate?: number;
   perMinuteRate?: number;
   surgeMultiplier: number;
-  
+
   validFrom?: Date;
   validUntil?: Date;
   isActive: boolean;

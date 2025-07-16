@@ -8,7 +8,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const dbHealthy = await checkDatabase();
     const redisHealthy = await checkRedis();
-    
+
     const health = {
       status: dbHealthy && redisHealthy ? 'healthy' : 'unhealthy',
       timestamp: new Date().toISOString(),
@@ -17,7 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
         redis: redisHealthy ? 'healthy' : 'unhealthy'
       }
     };
-    
+
     const statusCode = health.status === 'healthy' ? 200 : 503;
     res.status(statusCode).json(health);
   } catch (error) {

@@ -41,22 +41,22 @@ export class DriverEventHandler {
   private setupEventHandlers() {
     this.io.on('connection', (socket: Socket) => {
       console.log(`Socket connected: ${socket.id}`);
-      
+
       // Authentication and room joining
       socket.on('authenticate', this.handleAuthentication.bind(this, socket));
-      
+
       // Driver events
       socket.on('driver:location_update', this.handleLocationUpdate.bind(this, socket));
       socket.on('driver:batch_location_update', this.handleBatchLocationUpdate.bind(this, socket));
       socket.on('driver:status_update', this.handleStatusUpdate.bind(this, socket));
       socket.on('driver:route_start', this.handleRouteStart.bind(this, socket));
       socket.on('driver:route_complete', this.handleRouteComplete.bind(this, socket));
-      
+
       // Dispatcher events
       socket.on('dispatcher:join_company', this.handleDispatcherJoin.bind(this, socket));
       socket.on('dispatcher:track_driver', this.handleTrackDriver.bind(this, socket));
       socket.on('dispatcher:get_nearby_drivers', this.handleGetNearbyDrivers.bind(this, socket));
-      
+
       // Connection management
       socket.on('ping', () => socket.emit('pong'));
       socket.on('disconnect', this.handleDisconnect.bind(this, socket));
@@ -72,54 +72,54 @@ export class DriverEventHandler {
 
       // Store user data in socket
       socket.data = data;
-      
+
       if (data.userType === 'driver' && data.driverId) {
         // Join driver to their personal room
         await socket.join(`driver:${data.driverId}`);
-        
+
         // Join company room for company-wide broadcasts
         await socket.join(`company:${data.companyId}`);
-        
+
         // Track connected driver
         this.connectedDrivers.set(data.driverId, socket);
-        
+
         // Mark driver as online
         await driverTrackingService.updateDriverStatus({
           driverId: data.driverId,
           isOnline: true,
           isAvailable: true,
           lastLocationUpdate: new Date(),
-          connectionQuality: 'excellent',
+          connectionQuality: 'excellent'
         });
-        
+
         // Notify dispatchers
         this.broadcastToDispatchers(data.companyId, 'driver:online', {
           driverId: data.driverId,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         });
-        
+
         console.log(`Driver ${data.driverId} authenticated and online`);
-        
+
       } else if (data.userType === 'dispatcher' || data.userType === 'admin') {
         // Join dispatcher rooms
         await socket.join(`dispatchers:${data.companyId}`);
         await socket.join(`company:${data.companyId}`);
-        
+
         // Track dispatcher in company room
         if (!this.dispatcherRooms.has(data.companyId)) {
           this.dispatcherRooms.set(data.companyId, new Set());
         }
         this.dispatcherRooms.get(data.companyId)!.add(socket.id);
-        
+
         // Send current active drivers
         const activeDrivers = await driverTrackingService.getActiveDrivers(data.companyId);
         socket.emit('active_drivers', { drivers: activeDrivers });
-        
+
         console.log(`Dispatcher ${data.userId} joined company ${data.companyId}`);
       }
-      
+
       socket.emit('authenticated', { success: true, userType: data.userType });
-      
+
     } catch (error) {
       console.error('Authentication error:', error);
       socket.emit('error', { message: 'Authentication failed' });
@@ -129,7 +129,7 @@ export class DriverEventHandler {
   private async handleLocationUpdate(socket: Socket, payload: LocationUpdatePayload) {
     try {
       const driverData = socket.data as DriverSocketData;
-      
+
       if (!driverData.driverId || !driverData.companyId) {
         socket.emit('error', { message: 'Driver not authenticated' });
         return;
@@ -144,7 +144,7 @@ export class DriverEventHandler {
         heading: payload.heading,
         altitude: payload.altitude,
         timestamp: payload.timestamp ? new Date(payload.timestamp) : new Date(),
-        companyId: driverData.companyId,
+        companyId: driverData.companyId
       };
 
       // Update location in service
@@ -153,13 +153,13 @@ export class DriverEventHandler {
       // Broadcast to dispatchers in real-time
       this.broadcastToDispatchers(driverData.companyId, 'driver:location_updated', {
         ...location,
-        timestamp: location.timestamp.toISOString(),
+        timestamp: location.timestamp.toISOString()
       });
 
       // Confirm to driver
-      socket.emit('location_updated', { 
-        success: true, 
-        timestamp: location.timestamp.toISOString(),
+      socket.emit('location_updated', {
+        success: true,
+        timestamp: location.timestamp.toISOString()
       });
 
       // Update connection quality based on response time
@@ -174,7 +174,7 @@ export class DriverEventHandler {
   private async handleBatchLocationUpdate(socket: Socket, payload: { updates: LocationUpdatePayload[] }) {
     try {
       const driverData = socket.data as DriverSocketData;
-      
+
       if (!driverData.driverId || !driverData.companyId) {
         socket.emit('error', { message: 'Driver not authenticated' });
         return;
@@ -189,7 +189,7 @@ export class DriverEventHandler {
         heading: update.heading,
         altitude: update.altitude,
         timestamp: update.timestamp ? new Date(update.timestamp) : new Date(),
-        companyId: driverData.companyId!,
+        companyId: driverData.companyId!
       }));
 
       // Batch update locations
@@ -200,13 +200,13 @@ export class DriverEventHandler {
       this.broadcastToDispatchers(driverData.companyId, 'driver:location_updated', {
         ...latestLocation,
         timestamp: latestLocation.timestamp.toISOString(),
-        batchCount: locations.length,
+        batchCount: locations.length
       });
 
-      socket.emit('batch_locations_updated', { 
-        success: true, 
+      socket.emit('batch_locations_updated', {
+        success: true,
         count: locations.length,
-        latestTimestamp: latestLocation.timestamp.toISOString(),
+        latestTimestamp: latestLocation.timestamp.toISOString()
       });
 
     } catch (error) {
@@ -218,7 +218,7 @@ export class DriverEventHandler {
   private async handleStatusUpdate(socket: Socket, payload: StatusUpdatePayload) {
     try {
       const driverData = socket.data as DriverSocketData;
-      
+
       if (!driverData.driverId) {
         socket.emit('error', { message: 'Driver not authenticated' });
         return;
@@ -231,7 +231,7 @@ export class DriverEventHandler {
         currentJobId: payload.currentJobId,
         lastLocationUpdate: new Date(),
         batteryLevel: payload.batteryLevel,
-        connectionQuality: payload.connectionQuality || 'good',
+        connectionQuality: payload.connectionQuality || 'good'
       };
 
       await driverTrackingService.updateDriverStatus(status);
@@ -239,7 +239,7 @@ export class DriverEventHandler {
       // Broadcast status change to dispatchers
       this.broadcastToDispatchers(driverData.companyId!, 'driver:status_updated', {
         ...status,
-        lastLocationUpdate: status.lastLocationUpdate.toISOString(),
+        lastLocationUpdate: status.lastLocationUpdate.toISOString()
       });
 
       socket.emit('status_updated', { success: true });
@@ -252,7 +252,7 @@ export class DriverEventHandler {
 
   private handleRouteStart(socket: Socket, payload: { jobId: string; estimatedDuration: number }) {
     const driverData = socket.data as DriverSocketData;
-    
+
     if (!driverData.driverId) {
       socket.emit('error', { message: 'Driver not authenticated' });
       return;
@@ -263,7 +263,7 @@ export class DriverEventHandler {
       driverId: driverData.driverId,
       jobId: payload.jobId,
       estimatedDuration: payload.estimatedDuration,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
 
     socket.emit('route_started', { success: true });
@@ -271,7 +271,7 @@ export class DriverEventHandler {
 
   private handleRouteComplete(socket: Socket, payload: { jobId: string; finalLocation: { lat: number; lng: number } }) {
     const driverData = socket.data as DriverSocketData;
-    
+
     if (!driverData.driverId) {
       socket.emit('error', { message: 'Driver not authenticated' });
       return;
@@ -282,7 +282,7 @@ export class DriverEventHandler {
       driverId: driverData.driverId,
       jobId: payload.jobId,
       finalLocation: payload.finalLocation,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
 
     socket.emit('route_completed', { success: true });
@@ -290,23 +290,23 @@ export class DriverEventHandler {
 
   private handleDispatcherJoin(socket: Socket, payload: { companyId: string }) {
     // Already handled in authentication, but can be used for additional dispatcher-specific setup
-    socket.emit('dispatcher_joined', { 
+    socket.emit('dispatcher_joined', {
       companyId: payload.companyId,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
   }
 
   private async handleTrackDriver(socket: Socket, payload: { driverId: string }) {
     try {
       const dispatcherData = socket.data as DriverSocketData;
-      
+
       const location = await driverTrackingService.getDriverLocation(payload.driverId);
-      
+
       if (location) {
         socket.emit('driver_location', {
           ...location,
           driverId: payload.driverId,
-          timestamp: location.timestamp.toISOString(),
+          timestamp: location.timestamp.toISOString()
         });
       } else {
         socket.emit('driver_not_found', { driverId: payload.driverId });
@@ -318,15 +318,15 @@ export class DriverEventHandler {
     }
   }
 
-  private async handleGetNearbyDrivers(socket: Socket, payload: { 
-    latitude: number; 
-    longitude: number; 
+  private async handleGetNearbyDrivers(socket: Socket, payload: {
+    latitude: number;
+    longitude: number;
     radius: number;
     limit?: number;
   }) {
     try {
       const dispatcherData = socket.data as DriverSocketData;
-      
+
       if (!dispatcherData.companyId) {
         socket.emit('error', { message: 'Dispatcher not authenticated' });
         return;
@@ -337,19 +337,19 @@ export class DriverEventHandler {
         longitude: payload.longitude,
         radiusKm: payload.radius,
         companyId: dispatcherData.companyId,
-        limit: payload.limit || 20,
+        limit: payload.limit || 20
       });
 
       socket.emit('nearby_drivers', {
         drivers: nearbyDrivers.map(driver => ({
           ...driver,
-          timestamp: driver.timestamp.toISOString(),
+          timestamp: driver.timestamp.toISOString()
         })),
         searchLocation: {
           latitude: payload.latitude,
           longitude: payload.longitude,
-          radius: payload.radius,
-        },
+          radius: payload.radius
+        }
       });
 
     } catch (error) {
@@ -360,11 +360,11 @@ export class DriverEventHandler {
 
   private async handleDisconnect(socket: Socket) {
     const driverData = socket.data as DriverSocketData;
-    
+
     if (driverData?.driverId) {
       // Remove from connected drivers
       this.connectedDrivers.delete(driverData.driverId);
-      
+
       // Mark driver as offline after a grace period
       setTimeout(async () => {
         // Check if driver reconnected
@@ -374,19 +374,19 @@ export class DriverEventHandler {
             isOnline: false,
             isAvailable: false,
             lastLocationUpdate: new Date(),
-            connectionQuality: 'offline',
+            connectionQuality: 'offline'
           });
-          
+
           // Notify dispatchers
           this.broadcastToDispatchers(driverData.companyId!, 'driver:offline', {
             driverId: driverData.driverId,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString()
           });
         }
       }, 30000); // 30 second grace period
-      
+
       console.log(`Driver ${driverData.driverId} disconnected`);
-      
+
     } else if (driverData?.companyId && (driverData.userType === 'dispatcher' || driverData.userType === 'admin')) {
       // Remove dispatcher from company room tracking
       const companyRoom = this.dispatcherRooms.get(driverData.companyId);
@@ -396,7 +396,7 @@ export class DriverEventHandler {
           this.dispatcherRooms.delete(driverData.companyId);
         }
       }
-      
+
       console.log(`Dispatcher ${driverData.userId} disconnected from company ${driverData.companyId}`);
     }
   }
@@ -408,9 +408,9 @@ export class DriverEventHandler {
   private async updateConnectionQuality(socket: Socket, driverId: string) {
     const startTime = socket.data.lastPingTime || Date.now();
     const responseTime = Date.now() - startTime;
-    
+
     let quality: 'excellent' | 'good' | 'poor' | 'offline';
-    
+
     if (responseTime < 100) {
       quality = 'excellent';
     } else if (responseTime < 500) {
@@ -418,7 +418,7 @@ export class DriverEventHandler {
     } else {
       quality = 'poor';
     }
-    
+
     // Update connection quality in Redis
     await trackingRedis.hset(
       REDIS_KEYS.DRIVER_STATUS(driverId),
@@ -432,7 +432,7 @@ export class DriverEventHandler {
   public async broadcastLocationUpdate(driverId: string, location: DriverLocation) {
     this.io.to(`driver:${driverId}`).emit('location_broadcast', {
       ...location,
-      timestamp: location.timestamp.toISOString(),
+      timestamp: location.timestamp.toISOString()
     });
   }
 

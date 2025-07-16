@@ -14,11 +14,11 @@ const locationUpdateSchema = Joi.object({
   speed: Joi.number().min(0).max(1000).optional(),
   heading: Joi.number().min(0).max(360).optional(),
   altitude: Joi.number().optional(),
-  timestamp: Joi.string().isoDate().optional(),
+  timestamp: Joi.string().isoDate().optional()
 });
 
 const batchLocationUpdateSchema = Joi.object({
-  updates: Joi.array().items(locationUpdateSchema).min(1).max(100).required(),
+  updates: Joi.array().items(locationUpdateSchema).min(1).max(100).required()
 });
 
 const nearbyDriversSchema = Joi.object({
@@ -26,7 +26,7 @@ const nearbyDriversSchema = Joi.object({
   longitude: Joi.number().min(-180).max(180).required(),
   radius: Joi.number().min(0.1).max(100).default(5), // km
   limit: Joi.number().min(1).max(100).default(20),
-  excludeDriverIds: Joi.array().items(Joi.string()).optional(),
+  excludeDriverIds: Joi.array().items(Joi.string()).optional()
 });
 
 const statusUpdateSchema = Joi.object({
@@ -34,27 +34,27 @@ const statusUpdateSchema = Joi.object({
   isAvailable: Joi.boolean().required(),
   currentJobId: Joi.string().optional(),
   batteryLevel: Joi.number().min(0).max(100).optional(),
-  connectionQuality: Joi.string().valid('excellent', 'good', 'poor', 'offline').optional(),
+  connectionQuality: Joi.string().valid('excellent', 'good', 'poor', 'offline').optional()
 });
 
 // Middleware for request validation
 const validateRequest = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req.body, { 
+    const { error, value } = schema.validate(req.body, {
       abortEarly: false,
-      stripUnknown: true,
+      stripUnknown: true
     });
-    
+
     if (error) {
       return res.status(400).json({
         error: 'Validation failed',
         details: error.details.map(detail => ({
           field: detail.path.join('.'),
-          message: detail.message,
-        })),
+          message: detail.message
+        }))
       });
     }
-    
+
     req.body = value;
     next();
   };
@@ -64,20 +64,20 @@ const validateRequest = (schema: Joi.ObjectSchema) => {
 const authenticateDriver = (req: Request, res: Response, next: NextFunction) => {
   const driverId = req.params.driverId || req.headers['x-driver-id'];
   const companyId = req.headers['x-company-id'];
-  
+
   if (!driverId || !companyId) {
     return res.status(401).json({
       error: 'Authentication required',
-      message: 'Driver ID and Company ID must be provided',
+      message: 'Driver ID and Company ID must be provided'
     });
   }
-  
+
   // Attach to request for use in handlers
   req.driverAuth = {
     driverId: driverId as string,
-    companyId: companyId as string,
+    companyId: companyId as string
   };
-  
+
   next();
 };
 
@@ -85,16 +85,16 @@ const authenticateDriver = (req: Request, res: Response, next: NextFunction) => 
  * POST /api/drivers/:driverId/location
  * Update driver's current location
  */
-router.post('/:driverId/location', 
+router.post('/:driverId/location',
   authenticateDriver,
   validateRequest(locationUpdateSchema),
   async (req: Request, res: Response) => {
     const startTime = Date.now();
-    
+
     try {
       const { driverId, companyId } = req.driverAuth;
       const locationData = req.body;
-      
+
       const location = {
         driverId,
         latitude: locationData.latitude,
@@ -104,44 +104,44 @@ router.post('/:driverId/location',
         heading: locationData.heading,
         altitude: locationData.altitude,
         timestamp: locationData.timestamp ? new Date(locationData.timestamp) : new Date(),
-        companyId,
+        companyId
       };
-      
+
       // Update location using the tracking service
       await driverTrackingService.updateDriverLocation(location);
-      
+
       // Record performance metrics
       performanceMonitor.recordLocationUpdate();
-      
+
       // Broadcast via Socket.io if handler is available
       const driverEventHandler = getDriverEventHandler();
       if (driverEventHandler) {
         await driverEventHandler.broadcastLocationUpdate(driverId, location);
       }
-      
+
       const processingTime = Date.now() - startTime;
-      
+
       res.json({
         success: true,
         message: 'Location updated successfully',
         data: {
           driverId,
           timestamp: location.timestamp.toISOString(),
-          processingTime: `${processingTime}ms`,
-        },
+          processingTime: `${processingTime}ms`
+        }
       });
-      
+
       // Log slow requests
       if (processingTime > 100) {
         console.warn(`Slow location update API: ${processingTime}ms for driver ${driverId}`);
       }
-      
+
     } catch (error) {
       console.error('Location update API error:', error);
       performanceMonitor.recordError();
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to update location',
+        message: 'Failed to update location'
       });
     }
   }
@@ -156,11 +156,11 @@ router.post('/:driverId/location/batch',
   validateRequest(batchLocationUpdateSchema),
   async (req: Request, res: Response) => {
     const startTime = Date.now();
-    
+
     try {
       const { driverId, companyId } = req.driverAuth;
       const { updates } = req.body;
-      
+
       const locations = updates.map((update: any) => ({
         driverId,
         latitude: update.latitude,
@@ -170,21 +170,21 @@ router.post('/:driverId/location/batch',
         heading: update.heading,
         altitude: update.altitude,
         timestamp: update.timestamp ? new Date(update.timestamp) : new Date(),
-        companyId,
+        companyId
       }));
-      
+
       // Batch update locations
       await driverTrackingService.batchUpdateLocations(locations);
-      
+
       // Broadcast only the latest location
       const latestLocation = locations[locations.length - 1];
       const driverEventHandler = getDriverEventHandler();
       if (driverEventHandler) {
         await driverEventHandler.broadcastLocationUpdate(driverId, latestLocation);
       }
-      
+
       const processingTime = Date.now() - startTime;
-      
+
       res.json({
         success: true,
         message: 'Batch locations updated successfully',
@@ -192,15 +192,15 @@ router.post('/:driverId/location/batch',
           driverId,
           updatesCount: locations.length,
           latestTimestamp: latestLocation.timestamp.toISOString(),
-          processingTime: `${processingTime}ms`,
-        },
+          processingTime: `${processingTime}ms`
+        }
       });
-      
+
     } catch (error) {
       console.error('Batch location update API error:', error);
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to update batch locations',
+        message: 'Failed to update batch locations'
       });
     }
   }
@@ -215,29 +215,29 @@ router.get('/:driverId/location',
   async (req: Request, res: Response) => {
     try {
       const { driverId } = req.driverAuth;
-      
+
       const location = await driverTrackingService.getDriverLocation(driverId);
-      
+
       if (!location) {
         return res.status(404).json({
           error: 'Not found',
-          message: 'Driver location not available',
+          message: 'Driver location not available'
         });
       }
-      
+
       res.json({
         success: true,
         data: {
           ...location,
-          timestamp: location.timestamp.toISOString(),
-        },
+          timestamp: location.timestamp.toISOString()
+        }
       });
-      
+
     } catch (error) {
       console.error('Get location API error:', error);
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to get location',
+        message: 'Failed to get location'
       });
     }
   }
@@ -254,7 +254,7 @@ router.post('/:driverId/status',
     try {
       const { driverId } = req.driverAuth;
       const statusData = req.body;
-      
+
       const status = {
         driverId,
         isOnline: statusData.isOnline,
@@ -262,25 +262,25 @@ router.post('/:driverId/status',
         currentJobId: statusData.currentJobId,
         lastLocationUpdate: new Date(),
         batteryLevel: statusData.batteryLevel,
-        connectionQuality: statusData.connectionQuality || 'good',
+        connectionQuality: statusData.connectionQuality || 'good'
       };
-      
+
       await driverTrackingService.updateDriverStatus(status);
-      
+
       res.json({
         success: true,
         message: 'Status updated successfully',
         data: {
           ...status,
-          lastLocationUpdate: status.lastLocationUpdate.toISOString(),
-        },
+          lastLocationUpdate: status.lastLocationUpdate.toISOString()
+        }
       });
-      
+
     } catch (error) {
       console.error('Status update API error:', error);
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to update status',
+        message: 'Failed to update status'
       });
     }
   }
@@ -294,54 +294,54 @@ router.post('/nearby',
   validateRequest(nearbyDriversSchema),
   async (req: Request, res: Response) => {
     const startTime = Date.now();
-    
+
     try {
       const companyId = req.headers['x-company-id'] as string;
-      
+
       if (!companyId) {
         return res.status(401).json({
           error: 'Authentication required',
-          message: 'Company ID must be provided',
+          message: 'Company ID must be provided'
         });
       }
-      
+
       const query = {
         ...req.body,
-        companyId,
+        companyId
       };
-      
+
       const nearbyDrivers = await driverTrackingService.getNearbyDrivers(query);
-      
+
       const processingTime = Date.now() - startTime;
-      
+
       res.json({
         success: true,
         data: {
           drivers: nearbyDrivers.map(driver => ({
             ...driver,
-            timestamp: driver.timestamp.toISOString(),
+            timestamp: driver.timestamp.toISOString()
           })),
           searchCriteria: {
             latitude: query.latitude,
             longitude: query.longitude,
             radiusKm: query.radiusKm,
-            limit: query.limit,
+            limit: query.limit
           },
           resultsCount: nearbyDrivers.length,
-          processingTime: `${processingTime}ms`,
-        },
+          processingTime: `${processingTime}ms`
+        }
       });
-      
+
       // Log slow queries
       if (processingTime > 50) {
         console.warn(`Slow nearby drivers query: ${processingTime}ms`);
       }
-      
+
     } catch (error) {
       console.error('Nearby drivers API error:', error);
       res.status(500).json({
         error: 'Internal server error',
-        message: 'Failed to find nearby drivers',
+        message: 'Failed to find nearby drivers'
       });
     }
   }
@@ -354,43 +354,43 @@ router.post('/nearby',
 router.get('/active', async (req: Request, res: Response) => {
   try {
     const companyId = req.headers['x-company-id'] as string;
-    
+
     if (!companyId) {
       return res.status(401).json({
         error: 'Authentication required',
-        message: 'Company ID must be provided',
+        message: 'Company ID must be provided'
       });
     }
-    
+
     const activeDriverIds = await driverTrackingService.getActiveDrivers(companyId);
-    
+
     // Get location details for each active driver
     const driverLocations = await Promise.all(
       activeDriverIds.map(async (driverId) => {
         const location = await driverTrackingService.getDriverLocation(driverId);
         return location ? {
           ...location,
-          timestamp: location.timestamp.toISOString(),
+          timestamp: location.timestamp.toISOString()
         } : null;
       })
     );
-    
+
     // Filter out null results
     const validLocations = driverLocations.filter(loc => loc !== null);
-    
+
     res.json({
       success: true,
       data: {
         activeDriversCount: validLocations.length,
-        drivers: validLocations,
-      },
+        drivers: validLocations
+      }
     });
-    
+
   } catch (error) {
     console.error('Active drivers API error:', error);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to get active drivers',
+      message: 'Failed to get active drivers'
     });
   }
 });
@@ -402,34 +402,34 @@ router.get('/active', async (req: Request, res: Response) => {
 router.get('/tracking/stats', async (req: Request, res: Response) => {
   try {
     const companyId = req.headers['x-company-id'] as string;
-    
+
     if (!companyId) {
       return res.status(401).json({
         error: 'Authentication required',
-        message: 'Company ID must be provided',
+        message: 'Company ID must be provided'
       });
     }
-    
+
     const activeDriverIds = await driverTrackingService.getActiveDrivers(companyId);
     const driverEventHandler = getDriverEventHandler();
-    
+
     const stats = {
       companyId,
       activeDriversCount: activeDriverIds.length,
       connectedSocketsCount: driverEventHandler ? driverEventHandler.getConnectedDriversCount() : 0,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     };
-    
+
     res.json({
       success: true,
-      data: stats,
+      data: stats
     });
-    
+
   } catch (error) {
     console.error('Tracking stats API error:', error);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to get tracking statistics',
+      message: 'Failed to get tracking statistics'
     });
   }
 });
@@ -441,17 +441,17 @@ router.get('/tracking/stats', async (req: Request, res: Response) => {
 router.get('/tracking/performance', async (req: Request, res: Response) => {
   try {
     const performanceSummary = performanceMonitor.getPerformanceSummary();
-    
+
     res.json({
       success: true,
-      data: performanceSummary,
+      data: performanceSummary
     });
-    
+
   } catch (error) {
     console.error('Performance metrics API error:', error);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to get performance metrics',
+      message: 'Failed to get performance metrics'
     });
   }
 });

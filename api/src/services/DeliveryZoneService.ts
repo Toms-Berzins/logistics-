@@ -1,12 +1,12 @@
 import { databaseConfig } from '../config/database';
 import trackingRedis from '../config/redisTracking';
 import { postgisUtils } from '../utils/postgis';
-import { 
-  Zone, 
-  ZoneMetadata, 
-  ZonePricing, 
-  ZoneContainmentResult, 
-  ZoneOperation, 
+import {
+  Zone,
+  ZoneMetadata,
+  ZonePricing,
+  ZoneContainmentResult,
+  ZoneOperation,
   ZoneStatistics,
   ZoneImportRequest,
   ZoneImportResult,
@@ -30,7 +30,6 @@ export interface ZoneQueryOptions {
   serviceLevel?: string;
   timeFilter?: Date;
 }
-
 
 export class DeliveryZoneService extends EventEmitter {
   private options: ZoneServiceOptions;
@@ -61,7 +60,7 @@ export class DeliveryZoneService extends EventEmitter {
     // Validate geometry
     const polygonWKT = postgisUtils.geoJSONToWKT(polygon);
     const validation = await postgisUtils.validateGeometry(polygonWKT);
-    
+
     if (!validation.isValid) {
       throw new Error(`Invalid polygon geometry: ${validation.reason}`);
     }
@@ -74,7 +73,7 @@ export class DeliveryZoneService extends EventEmitter {
     const perimeter = await postgisUtils.calculatePerimeter(polygonWKT);
 
     const client = await databaseConfig.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -173,7 +172,7 @@ export class DeliveryZoneService extends EventEmitter {
     options: ZoneQueryOptions = {}
   ): Promise<ZoneContainmentResult> {
     const cacheKey = `zones:contains:${companyId}:${point.latitude}:${point.longitude}`;
-    
+
     // Check cache first
     if (this.options.enableCaching) {
       const cached = await trackingRedis.get(cacheKey);
@@ -183,7 +182,7 @@ export class DeliveryZoneService extends EventEmitter {
     }
 
     const client = await databaseConfig.connect();
-    
+
     try {
       let query = `
         SELECT 
@@ -216,7 +215,7 @@ export class DeliveryZoneService extends EventEmitter {
       query += ' ORDER BY priority DESC, area_sq_km ASC';
 
       const result = await client.query(query, params);
-      
+
       const zones: Zone[] = result.rows.map(row => ({
         id: row.id,
         companyId,
@@ -295,7 +294,7 @@ export class DeliveryZoneService extends EventEmitter {
     }
 
     const client = await databaseConfig.connect();
-    
+
     try {
       // Get zone geometries
       const result = await client.query(`
@@ -312,26 +311,26 @@ export class DeliveryZoneService extends EventEmitter {
       const geometries = result.rows.map(row => row.boundary_wkt);
 
       switch (operation) {
-        case 'union':
-          resultGeometry = await postgisUtils.calculateUnion(geometries);
-          break;
-        
-        case 'intersection':
-          if (geometries.length > 2) {
-            throw new Error('Intersection operation supports only 2 zones');
-          }
-          resultGeometry = await postgisUtils.calculateIntersection(geometries[0], geometries[1]);
-          break;
-        
-        case 'difference':
-          if (geometries.length > 2) {
-            throw new Error('Difference operation supports only 2 zones');
-          }
-          resultGeometry = await postgisUtils.calculateDifference(geometries[0], geometries[1]);
-          break;
-        
-        default:
-          throw new Error(`Unsupported operation: ${operation}`);
+      case 'union':
+        resultGeometry = await postgisUtils.calculateUnion(geometries);
+        break;
+
+      case 'intersection':
+        if (geometries.length > 2) {
+          throw new Error('Intersection operation supports only 2 zones');
+        }
+        resultGeometry = await postgisUtils.calculateIntersection(geometries[0], geometries[1]);
+        break;
+
+      case 'difference':
+        if (geometries.length > 2) {
+          throw new Error('Difference operation supports only 2 zones');
+        }
+        resultGeometry = await postgisUtils.calculateDifference(geometries[0], geometries[1]);
+        break;
+
+      default:
+        throw new Error(`Unsupported operation: ${operation}`);
       }
 
       const area = await postgisUtils.calculateArea(resultGeometry);
@@ -365,7 +364,7 @@ export class DeliveryZoneService extends EventEmitter {
     periodEnd: Date
   ): Promise<ZoneStatistics> {
     const client = await databaseConfig.connect();
-    
+
     try {
       // Get zone details
       const zoneResult = await client.query(`
@@ -435,16 +434,16 @@ export class DeliveryZoneService extends EventEmitter {
 
       // Parse data based on format
       switch (importRequest.format) {
-        case 'geojson':
-          zones = this.parseGeoJSON(importRequest.fileData as string);
-          break;
-        case 'kml':
-          zones = this.parseKML(importRequest.fileData as string);
-          break;
-        case 'shapefile':
-          throw new Error('Shapefile import not implemented yet');
-        default:
-          throw new Error(`Unsupported format: ${importRequest.format}`);
+      case 'geojson':
+        zones = this.parseGeoJSON(importRequest.fileData as string);
+        break;
+      case 'kml':
+        zones = this.parseKML(importRequest.fileData as string);
+        break;
+      case 'shapefile':
+        throw new Error('Shapefile import not implemented yet');
+      default:
+        throw new Error(`Unsupported format: ${importRequest.format}`);
       }
 
       result.totalZones = zones.length;
@@ -453,12 +452,12 @@ export class DeliveryZoneService extends EventEmitter {
       for (let i = 0; i < zones.length; i++) {
         try {
           const zoneData = zones[i];
-          
+
           // Validate geometry if requested
           if (importRequest.validateGeometry) {
             const geometryWKT = postgisUtils.geoJSONToWKT(zoneData.geometry);
             const validation = await postgisUtils.validateGeometry(geometryWKT);
-            
+
             if (!validation.isValid) {
               result.errors.push({
                 zoneIndex: i,
@@ -514,13 +513,13 @@ export class DeliveryZoneService extends EventEmitter {
     analysisArea?: GeoJSON.Polygon
   ): Promise<ZoneCoverageAnalysis> {
     const client = await databaseConfig.connect();
-    
+
     try {
       let areaWhere = '';
-      let areaParams: any[] = [companyId];
-      
+      const areaParams: any[] = [companyId];
+
       if (analysisArea) {
-        areaWhere = `AND ST_Intersects(boundary, ST_GeomFromGeoJSON($2))`;
+        areaWhere = 'AND ST_Intersects(boundary, ST_GeomFromGeoJSON($2))';
         areaParams.push(JSON.stringify(analysisArea));
       }
 
@@ -555,12 +554,12 @@ export class DeliveryZoneService extends EventEmitter {
       // Calculate union of all zones
       const geometries = zones.map(z => z.boundary_wkt);
       unionGeometry = await postgisUtils.calculateUnion(geometries);
-      
+
       const unionArea = await postgisUtils.calculateArea(unionGeometry);
-      
+
       // Calculate total area of individual zones (to detect overlaps)
       totalArea = zones.reduce((sum, zone) => sum + parseFloat(zone.area_sq_m), 0) / 1000000; // Convert to sq km
-      
+
       const overlapArea = Math.max(0, totalArea - unionArea);
 
       // For simplicity, we'll return basic statistics
@@ -572,8 +571,8 @@ export class DeliveryZoneService extends EventEmitter {
         overlapArea,
         gapAreas: [],
         overlapRegions: [],
-        coveragePercentage: analysisArea ? 
-          (unionArea / await postgisUtils.calculateArea(postgisUtils.geoJSONToWKT(analysisArea))) * 100 : 
+        coveragePercentage: analysisArea ?
+          (unionArea / await postgisUtils.calculateArea(postgisUtils.geoJSONToWKT(analysisArea))) * 100 :
           100
       };
 
@@ -593,14 +592,14 @@ export class DeliveryZoneService extends EventEmitter {
     requestTime?: Date
   ): Promise<ZonePricing[]> {
     const cacheKey = `pricing:${zoneId}:${vehicleType || 'default'}`;
-    
+
     // Check cache
     if (this.options.enableCaching && this.pricingCache.has(cacheKey)) {
       return this.pricingCache.get(cacheKey)!;
     }
 
     const client = await databaseConfig.connect();
-    
+
     try {
       const currentTime = requestTime || new Date();
       const dayOfWeek = currentTime.getDay();
@@ -647,7 +646,7 @@ export class DeliveryZoneService extends EventEmitter {
       `;
 
       const result = await client.query(query, params);
-      
+
       const pricing: ZonePricing[] = result.rows.map(row => ({
         id: row.id,
         zoneId: row.zone_id,
@@ -668,7 +667,7 @@ export class DeliveryZoneService extends EventEmitter {
       // Cache result
       if (this.options.enableCaching) {
         this.pricingCache.set(cacheKey, pricing);
-        
+
         // Auto-expire cache after 5 minutes
         setTimeout(() => {
           this.pricingCache.delete(cacheKey);
@@ -687,9 +686,9 @@ export class DeliveryZoneService extends EventEmitter {
   private async validateZoneTopology(companyId: string, polygon: GeoJSON.MultiPolygon): Promise<void> {
     // Check for overlaps with existing zones (if needed)
     // This is a simplified check - production might have more complex rules
-    
+
     const client = await databaseConfig.connect();
-    
+
     try {
       const result = await client.query(`
         SELECT COUNT(*) as overlap_count
@@ -700,7 +699,7 @@ export class DeliveryZoneService extends EventEmitter {
       `, [companyId, JSON.stringify(polygon)]);
 
       const overlapCount = parseInt(result.rows[0].overlap_count);
-      
+
       if (overlapCount > 5) {
         console.warn(`Zone has ${overlapCount} overlaps with existing zones`);
       }
@@ -712,8 +711,8 @@ export class DeliveryZoneService extends EventEmitter {
   private calculateZonePriority(area: number, companyId: string): number {
     // Smaller zones get higher priority (more specific)
     if (area < 1) return 100; // < 1 sq km = very high priority
-    if (area < 5) return 80;   // < 5 sq km = high priority
-    if (area < 20) return 60;  // < 20 sq km = medium priority
+    if (area < 5) return 80; // < 5 sq km = high priority
+    if (area < 20) return 60; // < 20 sq km = medium priority
     if (area < 100) return 40; // < 100 sq km = low priority
     return 20; // Large zones = very low priority
   }
@@ -722,25 +721,25 @@ export class DeliveryZoneService extends EventEmitter {
     if (!this.options.enableCaching) return;
 
     const cacheKey = `zones:company:${companyId}`;
-    
+
     // Clear existing cache
     await trackingRedis.del(cacheKey);
-    
+
     // This would cache all zones for the company
     // Implementation depends on caching strategy
   }
 
   private parseGeoJSON(data: string): any[] {
     const geoJson = JSON.parse(data);
-    
+
     if (geoJson.type === 'FeatureCollection') {
-      return geoJson.features.filter((feature: any) => 
+      return geoJson.features.filter((feature: any) =>
         feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon'
       );
     } else if (geoJson.type === 'Feature') {
       return [geoJson];
     }
-    
+
     throw new Error('Invalid GeoJSON format');
   }
 

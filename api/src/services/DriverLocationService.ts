@@ -1,13 +1,13 @@
 import { databaseConfig } from '../config/database';
 import trackingRedis, { REDIS_KEYS, TTL } from '../config/redisTracking';
 import { postgisUtils } from '../utils/postgis';
-import { 
-  Driver, 
-  LocationUpdate, 
-  GeofenceEvent, 
-  ETACalculation, 
+import {
+  Driver,
+  LocationUpdate,
+  GeofenceEvent,
+  ETACalculation,
   LocationBatch,
-  GeoPoint 
+  GeoPoint
 } from '../models/Driver';
 import { Geofence } from '../models/Zone';
 import { EventEmitter } from 'events';
@@ -80,7 +80,7 @@ export class DriverLocationService extends EventEmitter {
     try {
       // Validate input
       this.validateLocation(location);
-      
+
       // Get previous location for movement detection
       const previousLocation = await this.getLastLocation(driverId);
       const isMoving = this.detectMovement(location, previousLocation || undefined, speed);
@@ -114,10 +114,10 @@ export class DriverLocationService extends EventEmitter {
       if (this.options.enableGeofencing) {
         const geofenceResult = await this.checkGeofences(driverId, location, previousLocation?.location);
         geofenceEvents = geofenceResult.events;
-        
+
         // Update current zones tracking
         this.currentZones.set(driverId, new Set(geofenceResult.currentZones));
-        
+
         // Emit events for zone changes
         if (geofenceResult.zoneChanges.entered.length > 0) {
           this.emit('zonesEntered', {
@@ -127,7 +127,7 @@ export class DriverLocationService extends EventEmitter {
             timestamp: new Date()
           });
         }
-        
+
         if (geofenceResult.zoneChanges.exited.length > 0) {
           this.emit('zonesExited', {
             driverId,
@@ -228,7 +228,7 @@ export class DriverLocationService extends EventEmitter {
     limit: number = 1000
   ): Promise<LocationUpdate[]> {
     const client = await databaseConfig.connect();
-    
+
     try {
       let query = `
         SELECT 
@@ -251,27 +251,27 @@ export class DriverLocationService extends EventEmitter {
         FROM driver_location_history
         WHERE driver_id = $1
       `;
-      
+
       const params: any[] = [driverId];
       let paramIndex = 2;
-      
+
       if (startTime) {
         query += ` AND recorded_at >= $${paramIndex}`;
         params.push(startTime);
         paramIndex++;
       }
-      
+
       if (endTime) {
         query += ` AND recorded_at <= $${paramIndex}`;
         params.push(endTime);
         paramIndex++;
       }
-      
+
       query += ` ORDER BY recorded_at DESC LIMIT $${paramIndex}`;
       params.push(limit);
-      
+
       const result = await client.query(query, params);
-      
+
       return result.rows.map(row => ({
         id: row.id,
         driverId: row.driver_id,
@@ -303,16 +303,16 @@ export class DriverLocationService extends EventEmitter {
   async getCurrentLocations(companyId: string): Promise<Map<string, LocationUpdate>> {
     const driverIds = await trackingRedis.smembers(REDIS_KEYS.COMPANY_DRIVERS(companyId));
     const locations = new Map<string, LocationUpdate>();
-    
+
     if (driverIds.length === 0) return locations;
-    
+
     const pipeline = trackingRedis.pipeline();
     driverIds.forEach(driverId => {
       pipeline.hgetall(REDIS_KEYS.DRIVER_LOCATION(driverId));
     });
-    
+
     const results = await pipeline.exec();
-    
+
     results?.forEach((result, index) => {
       if (result && result[1]) {
         const data = result[1] as Record<string, string>;
@@ -338,7 +338,7 @@ export class DriverLocationService extends EventEmitter {
         }
       }
     });
-    
+
     return locations;
   }
 
@@ -348,21 +348,21 @@ export class DriverLocationService extends EventEmitter {
   async cleanupOldLocations(): Promise<number> {
     const retentionHours = this.options.locationRetentionHours || 24;
     const cutoffTime = new Date(Date.now() - retentionHours * 60 * 60 * 1000);
-    
+
     const client = await databaseConfig.connect();
-    
+
     try {
       const result = await client.query(
         'DELETE FROM driver_location_history WHERE recorded_at < $1',
         [cutoffTime]
       );
-      
+
       const deletedCount = result.rowCount || 0;
-      
+
       if (deletedCount > 0) {
         console.log(`Cleaned up ${deletedCount} old location records`);
       }
-      
+
       return deletedCount;
     } finally {
       client.release();
@@ -375,11 +375,11 @@ export class DriverLocationService extends EventEmitter {
     if (typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
       throw new Error('Latitude and longitude must be numbers');
     }
-    
+
     if (location.latitude < -90 || location.latitude > 90) {
       throw new Error('Latitude must be between -90 and 90');
     }
-    
+
     if (location.longitude < -180 || location.longitude > 180) {
       throw new Error('Longitude must be between -180 and 180');
     }
@@ -394,18 +394,18 @@ export class DriverLocationService extends EventEmitter {
     if (speed !== undefined && speed > 0.5) { // 0.5 m/s = ~1.8 km/h
       return true;
     }
-    
+
     // If no previous location, assume stationary
     if (!previousLocation) {
       return false;
     }
-    
+
     // Calculate distance moved
     const distance = this.calculateDistance(
       currentLocation,
       previousLocation.location
     );
-    
+
     // Consider moving if moved more than 10 meters
     return distance > 10;
   }
@@ -417,10 +417,10 @@ export class DriverLocationService extends EventEmitter {
     const Δφ = (point2.latitude - point1.latitude) * Math.PI / 180;
     const Δλ = (point2.longitude - point1.longitude) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
   }
@@ -428,7 +428,7 @@ export class DriverLocationService extends EventEmitter {
   private async getLastLocation(driverId: string): Promise<LocationUpdate | null> {
     // Try Redis first for speed
     const redisData = await trackingRedis.hgetall(REDIS_KEYS.DRIVER_LOCATION(driverId));
-    
+
     if (redisData && redisData.lat && redisData.lng) {
       return {
         id: `redis_${driverId}`,
@@ -444,7 +444,7 @@ export class DriverLocationService extends EventEmitter {
         createdAt: new Date(redisData.lastUpdate)
       };
     }
-    
+
     // Fallback to database
     const history = await this.getLocationHistory(driverId, undefined, undefined, 1);
     return history.length > 0 ? history[0] : null;
@@ -452,7 +452,7 @@ export class DriverLocationService extends EventEmitter {
 
   private async storeLocationInDatabase(location: LocationUpdate): Promise<void> {
     const client = await databaseConfig.connect();
-    
+
     try {
       await client.query(`
         INSERT INTO driver_location_history (
@@ -499,7 +499,7 @@ export class DriverLocationService extends EventEmitter {
     const pipeline = trackingRedis.pipeline();
     pipeline.hmset(REDIS_KEYS.DRIVER_LOCATION(location.driverId), redisData);
     pipeline.expire(REDIS_KEYS.DRIVER_LOCATION(location.driverId), TTL.DRIVER_LOCATION);
-    
+
     // Add to Redis Streams for history
     pipeline.xadd(
       `location_stream:${location.driverId}`,
@@ -511,20 +511,20 @@ export class DriverLocationService extends EventEmitter {
       'speed', redisData.speed,
       'timestamp', redisData.timestamp
     );
-    
+
     await pipeline.exec();
   }
 
   private updateLocationHistory(location: LocationUpdate): void {
     const driverId = location.driverId;
-    
+
     if (!this.locationHistory.has(driverId)) {
       this.locationHistory.set(driverId, []);
     }
-    
+
     const history = this.locationHistory.get(driverId)!;
     history.unshift(location);
-    
+
     // Keep only recent history in memory (last 50 entries)
     if (history.length > 50) {
       history.splice(50);
@@ -538,28 +538,28 @@ export class DriverLocationService extends EventEmitter {
   ): Promise<GeofenceCheckResult> {
     // Get active geofences
     const geofences = await this.getActiveGeofences(driverId);
-    
+
     // Find current zones
     const currentZones: string[] = [];
     const events: GeofenceEvent[] = [];
-    
+
     for (const geofence of geofences) {
       const isCurrentlyInside = await postgisUtils.pointInPolygon(
         currentLocation,
         postgisUtils.geoJSONToWKT(geofence.boundary)
       );
-      
+
       if (isCurrentlyInside) {
         currentZones.push(geofence.id);
       }
-      
+
       // Check for zone transitions if we have previous location
       if (previousLocation) {
         const wasPreviouslyInside = await postgisUtils.pointInPolygon(
           previousLocation,
           postgisUtils.geoJSONToWKT(geofence.boundary)
         );
-        
+
         // Entry event
         if (isCurrentlyInside && !wasPreviouslyInside && geofence.alertOnEntry) {
           const event: GeofenceEvent = {
@@ -573,10 +573,10 @@ export class DriverLocationService extends EventEmitter {
             alertSent: false,
             createdAt: new Date()
           };
-          
+
           events.push(event);
         }
-        
+
         // Exit event
         if (!isCurrentlyInside && wasPreviouslyInside && geofence.alertOnExit) {
           const event: GeofenceEvent = {
@@ -590,24 +590,24 @@ export class DriverLocationService extends EventEmitter {
             alertSent: false,
             createdAt: new Date()
           };
-          
+
           events.push(event);
         }
       }
     }
-    
+
     // Store events in database
     if (events.length > 0) {
       await this.storeGeofenceEvents(events);
     }
-    
+
     // Calculate zone changes
     const previousZones = this.currentZones.get(driverId) || new Set();
     const currentZonesSet = new Set(currentZones);
-    
+
     const entered = currentZones.filter(zone => !previousZones.has(zone));
     const exited = Array.from(previousZones).filter(zone => !currentZonesSet.has(zone));
-    
+
     return {
       events,
       currentZones,
@@ -619,13 +619,13 @@ export class DriverLocationService extends EventEmitter {
     // This would typically be cached in Redis for performance
     const cacheKey = `geofences:driver:${driverId}`;
     const cached = await trackingRedis.get(cacheKey);
-    
+
     if (cached) {
       return JSON.parse(cached);
     }
-    
+
     const client = await databaseConfig.connect();
-    
+
     try {
       const result = await client.query(`
         SELECT 
@@ -648,7 +648,7 @@ export class DriverLocationService extends EventEmitter {
         WHERE d.id = $1 AND g.is_active = true
         ORDER BY g.priority DESC
       `, [driverId]);
-      
+
       const geofences: Geofence[] = result.rows.map(row => ({
         id: row.id,
         companyId: row.company_id,
@@ -669,10 +669,10 @@ export class DriverLocationService extends EventEmitter {
         createdAt: new Date(),
         updatedAt: new Date()
       }));
-      
+
       // Cache for 5 minutes
       await trackingRedis.setex(cacheKey, 300, JSON.stringify(geofences));
-      
+
       return geofences;
     } finally {
       client.release();
@@ -681,20 +681,20 @@ export class DriverLocationService extends EventEmitter {
 
   private async storeGeofenceEvents(events: GeofenceEvent[]): Promise<void> {
     if (events.length === 0) return;
-    
+
     const client = await databaseConfig.connect();
-    
+
     try {
       const query = `
         INSERT INTO geofence_events (
           driver_id, geofence_id, event_type, location, 
           heading, speed, event_time, processed, alert_sent
         ) VALUES ${events.map((_, i) => {
-          const base = i * 8;
-          return `($${base + 1}, $${base + 2}, $${base + 3}, ST_SetSRID(ST_MakePoint($${base + 4}, $${base + 5}), 4326), $${base + 6}, $${base + 7}, $${base + 8})`;
-        }).join(', ')}
+    const base = i * 8;
+    return `($${base + 1}, $${base + 2}, $${base + 3}, ST_SetSRID(ST_MakePoint($${base + 4}, $${base + 5}), 4326), $${base + 6}, $${base + 7}, $${base + 8})`;
+  }).join(', ')}
       `;
-      
+
       const params: any[] = [];
       events.forEach(event => {
         params.push(
@@ -708,7 +708,7 @@ export class DriverLocationService extends EventEmitter {
           event.eventTime
         );
       });
-      
+
       await client.query(query, params);
     } finally {
       client.release();
@@ -718,17 +718,17 @@ export class DriverLocationService extends EventEmitter {
   private async calculateETA(driverId: string, currentLocation: GeoPoint): Promise<ETACalculation | undefined> {
     // This is a placeholder for ETA calculation
     // In production, this would integrate with routing services and historical data
-    
+
     // Get driver's current job/destination
     const destination = await this.getDriverDestination(driverId);
     if (!destination) return undefined;
-    
+
     const distance = this.calculateDistance(currentLocation, destination);
     const historicalSpeed = await this.getHistoricalAverageSpeed(driverId);
-    
+
     const estimatedDurationMinutes = Math.ceil(distance / (historicalSpeed * 60)); // Convert m/s to m/min
     const estimatedArrivalTime = new Date(Date.now() + estimatedDurationMinutes * 60 * 1000);
-    
+
     return {
       driverId,
       destinationLocation: destination,
@@ -759,7 +759,7 @@ export class DriverLocationService extends EventEmitter {
     // Store batch processing metadata for analytics
     const successCount = results.filter(r => r.locationUpdate).length;
     const avgProcessingTime = results.reduce((sum, r) => sum + r.processingTimeMs, 0) / results.length;
-    
+
     await trackingRedis.hset(
       `batch:${batch.batchId}`,
       'processed_at', Date.now().toString(),
@@ -767,7 +767,7 @@ export class DriverLocationService extends EventEmitter {
       'total_count', batch.locations.length.toString(),
       'avg_processing_time', avgProcessingTime.toString()
     );
-    
+
     // Expire batch metadata after 24 hours
     await trackingRedis.expire(`batch:${batch.batchId}`, 86400);
   }

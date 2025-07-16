@@ -53,13 +53,13 @@ export class PostGISUtils {
         ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography
       ) as is_contained
     `;
-    
+
     const result = await this.db.query(query, [
       polygonWKT,
       point.longitude,
       point.latitude
     ]);
-    
+
     return result.rows[0]?.is_contained || false;
   }
 
@@ -72,7 +72,7 @@ export class PostGISUtils {
     options: SpatialQueryOptions = {}
   ): Promise<ContainmentResult[]> {
     const { limit = 100, orderBy = 'priority', orderDirection = 'DESC' } = options;
-    
+
     let query = `
       SELECT 
         id,
@@ -84,7 +84,7 @@ export class PostGISUtils {
       WHERE is_active = true
         AND ST_Contains(boundary, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography)
     `;
-    
+
     // Add ordering
     if (orderBy === 'distance') {
       query += ` ORDER BY distance_meters ${orderDirection}`;
@@ -93,15 +93,15 @@ export class PostGISUtils {
     } else {
       query += ` ORDER BY ${orderBy} ${orderDirection}`;
     }
-    
-    query += ` LIMIT $3`;
-    
+
+    query += ' LIMIT $3';
+
     const result = await this.db.query(query, [
       point.longitude,
       point.latitude,
       limit
     ]);
-    
+
     return result.rows.map(row => ({
       id: row.id,
       name: row.name,
@@ -124,14 +124,14 @@ export class PostGISUtils {
         ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
       ) as distance_meters
     `;
-    
+
     const result = await this.db.query(query, [
       point1.longitude,
       point1.latitude,
       point2.longitude,
       point2.latitude
     ]);
-    
+
     return parseFloat(result.rows[0]?.distance_meters || 0);
   }
 
@@ -146,7 +146,7 @@ export class PostGISUtils {
     options: SpatialQueryOptions = {}
   ): Promise<DistanceResult[]> {
     const { limit = 100, orderBy = 'distance' } = options;
-    
+
     let query = `
       SELECT 
         *,
@@ -161,20 +161,20 @@ export class PostGISUtils {
         $3
       )
     `;
-    
+
     if (orderBy === 'distance') {
-      query += ` ORDER BY distance_meters ASC`;
+      query += ' ORDER BY distance_meters ASC';
     }
-    
-    query += ` LIMIT $4`;
-    
+
+    query += ' LIMIT $4';
+
     const result = await this.db.query(query, [
       center.longitude,
       center.latitude,
       radiusMeters,
       limit
     ]);
-    
+
     return result.rows.map(row => ({
       ...row,
       distanceMeters: parseFloat(row.distance_meters)
@@ -191,7 +191,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_AsText(ST_Buffer($1::geography, $2)) as buffered_geometry
     `;
-    
+
     const result = await this.db.query(query, [geometryWKT, bufferMeters]);
     return result.rows[0]?.buffered_geometry;
   }
@@ -202,12 +202,12 @@ export class PostGISUtils {
   async calculateUnion(polygonWKTs: string[]): Promise<string> {
     if (polygonWKTs.length === 0) return '';
     if (polygonWKTs.length === 1) return polygonWKTs[0];
-    
+
     const placeholders = polygonWKTs.map((_, i) => `$${i + 1}::geography`).join(', ');
     const query = `
       SELECT ST_AsText(ST_Union(ARRAY[${placeholders}])) as union_result
     `;
-    
+
     const result = await this.db.query(query, polygonWKTs);
     return result.rows[0]?.union_result;
   }
@@ -219,7 +219,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_AsText(ST_Intersection($1::geography, $2::geography)) as intersection_result
     `;
-    
+
     const result = await this.db.query(query, [polygon1WKT, polygon2WKT]);
     return result.rows[0]?.intersection_result;
   }
@@ -231,7 +231,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_AsText(ST_Difference($1::geography, $2::geography)) as difference_result
     `;
-    
+
     const result = await this.db.query(query, [polygon1WKT, polygon2WKT]);
     return result.rows[0]?.difference_result;
   }
@@ -248,10 +248,10 @@ export class PostGISUtils {
         ST_IsValid($1::geometry) as is_valid,
         ST_IsValidReason($1::geometry) as reason
     `;
-    
+
     const result = await this.db.query(query, [geometryWKT]);
     const row = result.rows[0];
-    
+
     return {
       isValid: row?.is_valid || false,
       reason: row?.reason
@@ -265,7 +265,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_Area($1::geography) / 1000000 as area_sq_km
     `;
-    
+
     const result = await this.db.query(query, [polygonWKT]);
     return parseFloat(result.rows[0]?.area_sq_km || 0);
   }
@@ -277,7 +277,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_Perimeter($1::geography) / 1000 as perimeter_km
     `;
-    
+
     const result = await this.db.query(query, [polygonWKT]);
     return parseFloat(result.rows[0]?.perimeter_km || 0);
   }
@@ -289,7 +289,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_AsText(ST_Simplify($1::geometry, $2)) as simplified_geometry
     `;
-    
+
     const result = await this.db.query(query, [geometryWKT, tolerance]);
     return result.rows[0]?.simplified_geometry;
   }
@@ -301,7 +301,7 @@ export class PostGISUtils {
     const query = `
       SELECT ST_Intersects($1::geography, $2::geography) as intersects
     `;
-    
+
     const result = await this.db.query(query, [geometry1WKT, geometry2WKT]);
     return result.rows[0]?.intersects || false;
   }
@@ -315,10 +315,10 @@ export class PostGISUtils {
         ST_Y(ST_Centroid($1::geometry)) as latitude,
         ST_X(ST_Centroid($1::geometry)) as longitude
     `;
-    
+
     const result = await this.db.query(query, [geometryWKT]);
     const row = result.rows[0];
-    
+
     return {
       latitude: parseFloat(row?.latitude || 0),
       longitude: parseFloat(row?.longitude || 0)
@@ -331,31 +331,31 @@ export class PostGISUtils {
   geoJSONToWKT(geoJSON: GeoJSON.Geometry): string {
     // This is a simplified implementation
     // In production, you might want to use a library like 'wkt' or 'terraformer'
-    
+
     if (geoJSON.type === 'Point') {
       const coords = geoJSON.coordinates as [number, number];
       return `POINT(${coords[0]} ${coords[1]})`;
     }
-    
+
     if (geoJSON.type === 'Polygon') {
       const coords = geoJSON.coordinates as number[][][];
-      const rings = coords.map(ring => 
+      const rings = coords.map(ring =>
         ring.map(coord => `${coord[0]} ${coord[1]}`).join(', ')
       ).map(ring => `(${ring})`).join(', ');
       return `POLYGON(${rings})`;
     }
-    
+
     if (geoJSON.type === 'MultiPolygon') {
       const coords = geoJSON.coordinates as number[][][][];
       const polygons = coords.map(polygon => {
-        const rings = polygon.map(ring => 
+        const rings = polygon.map(ring =>
           ring.map(coord => `${coord[0]} ${coord[1]}`).join(', ')
         ).map(ring => `(${ring})`).join(', ');
         return `(${rings})`;
       }).join(', ');
       return `MULTIPOLYGON(${polygons})`;
     }
-    
+
     throw new Error(`Unsupported geometry type: ${geoJSON.type}`);
   }
 
@@ -369,15 +369,15 @@ export class PostGISUtils {
     }>
   ): Promise<T[][]> {
     const client = await this.db.connect();
-    
+
     try {
       const results: T[][] = [];
-      
+
       for (const query of queries) {
         const result = await client.query(query.sql, query.params);
         results.push(result.rows);
       }
-      
+
       return results;
     } finally {
       client.release();

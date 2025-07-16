@@ -20,21 +20,21 @@ describe('DriverEventHandler', () => {
     httpServer = createServer();
     io = new SocketIOServer(httpServer, {
       cors: {
-        origin: "http://localhost",
-        methods: ["GET", "POST"]
+        origin: 'http://localhost',
+        methods: ['GET', 'POST']
       }
     });
-    
+
     driverEventHandler = new DriverEventHandler(io);
-    
+
     httpServer.listen(() => {
       const port = (httpServer.address() as any).port;
-      
+
       // Create test clients
       clientSocket = Client(`http://localhost:${port}`);
       driverSocket = Client(`http://localhost:${port}`);
       dispatcherSocket = Client(`http://localhost:${port}`);
-      
+
       // Wait for all connections
       let connectedCount = 0;
       const onConnect = () => {
@@ -43,7 +43,7 @@ describe('DriverEventHandler', () => {
           done();
         }
       };
-      
+
       clientSocket.on('connect', onConnect);
       driverSocket.on('connect', onConnect);
       dispatcherSocket.on('connect', onConnect);
@@ -60,7 +60,7 @@ describe('DriverEventHandler', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock service methods
     mockDriverTrackingService.updateDriverLocation.mockResolvedValue();
     mockDriverTrackingService.updateDriverStatus.mockResolvedValue();
@@ -76,7 +76,7 @@ describe('DriverEventHandler', () => {
         userId: 'user-123',
         companyId: 'company-456',
         userType: 'driver',
-        driverId: 'driver-789',
+        driverId: 'driver-789'
       });
 
       driverSocket.on('authenticated', (data: any) => {
@@ -92,7 +92,7 @@ describe('DriverEventHandler', () => {
       dispatcherSocket.emit('authenticate', {
         userId: 'user-456',
         companyId: 'company-456',
-        userType: 'dispatcher',
+        userType: 'dispatcher'
       });
 
       dispatcherSocket.on('authenticated', (data: any) => {
@@ -109,7 +109,7 @@ describe('DriverEventHandler', () => {
     it('should reject invalid authentication', (done) => {
       clientSocket.emit('authenticate', {
         // Missing required fields
-        userId: 'user-123',
+        userId: 'user-123'
       });
 
       clientSocket.on('error', (error: any) => {
@@ -126,7 +126,7 @@ describe('DriverEventHandler', () => {
         userId: 'user-123',
         companyId: 'company-456',
         userType: 'driver',
-        driverId: 'driver-789',
+        driverId: 'driver-789'
       });
 
       driverSocket.on('authenticated', () => {
@@ -141,7 +141,7 @@ describe('DriverEventHandler', () => {
         accuracy: 10,
         speed: 25,
         heading: 180,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
 
       driverSocket.emit('driver:location_update', locationUpdate);
@@ -154,7 +154,7 @@ describe('DriverEventHandler', () => {
             driverId: 'driver-789',
             latitude: 40.7128,
             longitude: -74.0060,
-            companyId: 'company-456',
+            companyId: 'company-456'
           })
         );
         done();
@@ -166,17 +166,17 @@ describe('DriverEventHandler', () => {
         {
           latitude: 40.7128,
           longitude: -74.0060,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         },
         {
           latitude: 40.7130,
           longitude: -74.0058,
-          timestamp: new Date().toISOString(),
-        },
+          timestamp: new Date().toISOString()
+        }
       ];
 
       driverSocket.emit('driver:batch_location_update', {
-        updates: batchUpdates,
+        updates: batchUpdates
       });
 
       driverSocket.on('batch_locations_updated', (response: any) => {
@@ -187,13 +187,13 @@ describe('DriverEventHandler', () => {
             expect.objectContaining({
               driverId: 'driver-789',
               latitude: 40.7128,
-              longitude: -74.0060,
+              longitude: -74.0060
             }),
             expect.objectContaining({
               driverId: 'driver-789',
               latitude: 40.7130,
-              longitude: -74.0058,
-            }),
+              longitude: -74.0058
+            })
           ])
         );
         done();
@@ -205,7 +205,7 @@ describe('DriverEventHandler', () => {
       dispatcherSocket.emit('authenticate', {
         userId: 'dispatcher-123',
         companyId: 'company-456',
-        userType: 'dispatcher',
+        userType: 'dispatcher'
       });
 
       dispatcherSocket.on('authenticated', () => {
@@ -213,7 +213,7 @@ describe('DriverEventHandler', () => {
         driverSocket.emit('driver:location_update', {
           latitude: 40.7128,
           longitude: -74.0060,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         });
       });
 
@@ -228,7 +228,7 @@ describe('DriverEventHandler', () => {
     it('should reject location updates from unauthenticated drivers', (done) => {
       clientSocket.emit('driver:location_update', {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.0060
       });
 
       clientSocket.on('error', (error: any) => {
@@ -244,7 +244,7 @@ describe('DriverEventHandler', () => {
         userId: 'user-123',
         companyId: 'company-456',
         userType: 'driver',
-        driverId: 'driver-789',
+        driverId: 'driver-789'
       });
 
       driverSocket.on('authenticated', () => {
@@ -258,7 +258,7 @@ describe('DriverEventHandler', () => {
         isAvailable: false,
         currentJobId: 'job-123',
         batteryLevel: 75,
-        connectionQuality: 'good' as const,
+        connectionQuality: 'good' as const
       };
 
       driverSocket.emit('driver:status_update', statusUpdate);
@@ -272,7 +272,7 @@ describe('DriverEventHandler', () => {
             isAvailable: false,
             currentJobId: 'job-123',
             batteryLevel: 75,
-            connectionQuality: 'good',
+            connectionQuality: 'good'
           })
         );
         done();
@@ -283,14 +283,14 @@ describe('DriverEventHandler', () => {
       dispatcherSocket.emit('authenticate', {
         userId: 'dispatcher-123',
         companyId: 'company-456',
-        userType: 'dispatcher',
+        userType: 'dispatcher'
       });
 
       dispatcherSocket.on('authenticated', () => {
         driverSocket.emit('driver:status_update', {
           isOnline: true,
           isAvailable: false,
-          currentJobId: 'job-123',
+          currentJobId: 'job-123'
         });
       });
 
@@ -309,7 +309,7 @@ describe('DriverEventHandler', () => {
       dispatcherSocket.emit('authenticate', {
         userId: 'dispatcher-123',
         companyId: 'company-456',
-        userType: 'dispatcher',
+        userType: 'dispatcher'
       });
 
       dispatcherSocket.on('authenticated', () => {
@@ -323,13 +323,13 @@ describe('DriverEventHandler', () => {
         latitude: 40.7128,
         longitude: -74.0060,
         timestamp: new Date(),
-        companyId: 'company-456',
+        companyId: 'company-456'
       };
 
       mockDriverTrackingService.getDriverLocation.mockResolvedValue(mockLocation);
 
       dispatcherSocket.emit('dispatcher:track_driver', {
-        driverId: 'driver-123',
+        driverId: 'driver-123'
       });
 
       dispatcherSocket.on('driver_location', (data: any) => {
@@ -347,15 +347,15 @@ describe('DriverEventHandler', () => {
           latitude: 40.7128,
           longitude: -74.0060,
           timestamp: new Date(),
-          companyId: 'company-456',
+          companyId: 'company-456'
         },
         {
           driverId: 'driver-2',
           latitude: 40.7130,
           longitude: -74.0058,
           timestamp: new Date(),
-          companyId: 'company-456',
-        },
+          companyId: 'company-456'
+        }
       ];
 
       mockDriverTrackingService.getNearbyDrivers.mockResolvedValue(mockNearbyDrivers);
@@ -363,7 +363,7 @@ describe('DriverEventHandler', () => {
       dispatcherSocket.emit('dispatcher:get_nearby_drivers', {
         latitude: 40.7128,
         longitude: -74.0060,
-        radius: 5,
+        radius: 5
       });
 
       dispatcherSocket.on('nearby_drivers', (data: any) => {
@@ -379,7 +379,7 @@ describe('DriverEventHandler', () => {
       mockDriverTrackingService.getDriverLocation.mockResolvedValue(null);
 
       dispatcherSocket.emit('dispatcher:track_driver', {
-        driverId: 'invalid-driver',
+        driverId: 'invalid-driver'
       });
 
       dispatcherSocket.on('driver_not_found', (data: any) => {
@@ -398,14 +398,14 @@ describe('DriverEventHandler', () => {
           userId: 'test-user',
           companyId: 'company-456',
           userType: 'driver',
-          driverId: 'test-driver',
+          driverId: 'test-driver'
         });
       });
 
       testDriverSocket.on('authenticated', () => {
         // Disconnect the driver
         testDriverSocket.disconnect();
-        
+
         // Wait for grace period and check if status was updated
         setTimeout(() => {
           expect(mockDriverTrackingService.updateDriverStatus).toHaveBeenCalledWith(
@@ -413,7 +413,7 @@ describe('DriverEventHandler', () => {
               driverId: 'test-driver',
               isOnline: false,
               isAvailable: false,
-              connectionQuality: 'offline',
+              connectionQuality: 'offline'
             })
           );
           done();
@@ -442,7 +442,7 @@ describe('DriverEventHandler', () => {
             userId: 'driver-user',
             companyId: 'company-456',
             userType: 'driver',
-            driverId: 'driver-789',
+            driverId: 'driver-789'
           });
           driverSocket.on('authenticated', resolve);
         }),
@@ -450,14 +450,14 @@ describe('DriverEventHandler', () => {
           dispatcherSocket.emit('authenticate', {
             userId: 'dispatcher-user',
             companyId: 'company-456',
-            userType: 'dispatcher',
+            userType: 'dispatcher'
           });
           dispatcherSocket.on('authenticated', resolve);
-        }),
+        })
       ]).then(() => {
         driverSocket.emit('driver:route_start', {
           jobId: 'job-123',
-          estimatedDuration: 1800, // 30 minutes
+          estimatedDuration: 1800 // 30 minutes
         });
       });
 
@@ -476,7 +476,7 @@ describe('DriverEventHandler', () => {
             userId: 'driver-user',
             companyId: 'company-456',
             userType: 'driver',
-            driverId: 'driver-789',
+            driverId: 'driver-789'
           });
           driverSocket.on('authenticated', resolve);
         }),
@@ -484,14 +484,14 @@ describe('DriverEventHandler', () => {
           dispatcherSocket.emit('authenticate', {
             userId: 'dispatcher-user',
             companyId: 'company-456',
-            userType: 'dispatcher',
+            userType: 'dispatcher'
           });
           dispatcherSocket.on('authenticated', resolve);
-        }),
+        })
       ]).then(() => {
         driverSocket.emit('driver:route_complete', {
           jobId: 'job-123',
-          finalLocation: { lat: 40.7128, lng: -74.0060 },
+          finalLocation: { lat: 40.7128, lng: -74.0060 }
         });
       });
 
@@ -513,7 +513,7 @@ describe('DriverEventHandler', () => {
         userId: 'perf-user',
         companyId: 'company-456',
         userType: 'driver',
-        driverId: 'perf-driver',
+        driverId: 'perf-driver'
       });
 
       driverSocket.on('authenticated', () => {
@@ -522,7 +522,7 @@ describe('DriverEventHandler', () => {
           driverSocket.emit('driver:location_update', {
             latitude: 40.7128 + i * 0.001,
             longitude: -74.0060 + i * 0.001,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString()
           });
         }
       });
@@ -541,22 +541,22 @@ describe('DriverEventHandler', () => {
         userId: 'latency-user',
         companyId: 'company-456',
         userType: 'driver',
-        driverId: 'latency-driver',
+        driverId: 'latency-driver'
       });
 
       driverSocket.on('authenticated', () => {
         const startTime = Date.now();
-        
+
         driverSocket.emit('driver:location_update', {
           latitude: 40.7128,
           longitude: -74.0060,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         });
 
         driverSocket.on('location_updated', () => {
           const endTime = Date.now();
           const latency = endTime - startTime;
-          
+
           // Should respond within 100ms for performance target
           expect(latency).toBeLessThan(100);
           done();

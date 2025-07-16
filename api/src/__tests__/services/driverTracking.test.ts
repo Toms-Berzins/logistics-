@@ -15,26 +15,26 @@ describe('DriverTrackingService', () => {
 
   beforeEach(() => {
     service = new DriverTrackingService();
-    
+
     // Reset mocks
     jest.clearAllMocks();
-    
+
     // Mock Redis pipeline
     const mockPipeline = {
       hmset: jest.fn().mockReturnThis(),
       expire: jest.fn().mockReturnThis(),
       sadd: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue([]),
+      exec: jest.fn().mockResolvedValue([])
     };
     mockRedis.pipeline = jest.fn().mockReturnValue(mockPipeline);
     mockRedis.hgetall = jest.fn();
     mockRedis.smembers = jest.fn();
     mockRedis.setex = jest.fn();
-    
+
     // Mock database client
     mockClient = {
       query: jest.fn(),
-      release: jest.fn(),
+      release: jest.fn()
     };
     mockDatabase.connect = jest.fn().mockResolvedValue(mockClient);
   });
@@ -49,7 +49,7 @@ describe('DriverTrackingService', () => {
       heading: 180,
       altitude: 100,
       timestamp: new Date('2024-01-01T12:00:00Z'),
-      companyId: 'company-456',
+      companyId: 'company-456'
     };
 
     it('should successfully update driver location in Redis', async () => {
@@ -66,7 +66,7 @@ describe('DriverTrackingService', () => {
           speed: '25',
           heading: '180',
           altitude: '100',
-          companyId: 'company-456',
+          companyId: 'company-456'
         })
       );
       expect(pipeline.expire).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ describe('DriverTrackingService', () => {
     it('should validate location data', async () => {
       const invalidLocation = {
         ...validLocation,
-        latitude: 100, // Invalid latitude
+        latitude: 100 // Invalid latitude
       };
 
       await expect(service.updateDriverLocation(invalidLocation))
@@ -91,7 +91,7 @@ describe('DriverTrackingService', () => {
         hmset: jest.fn().mockReturnThis(),
         expire: jest.fn().mockReturnThis(),
         sadd: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockRejectedValue(new Error('Redis error')),
+        exec: jest.fn().mockRejectedValue(new Error('Redis error'))
       };
       mockRedis.pipeline = jest.fn().mockReturnValue(mockPipeline);
 
@@ -102,7 +102,7 @@ describe('DriverTrackingService', () => {
     it('should handle missing required fields', async () => {
       const locationMissingDriverId = {
         ...validLocation,
-        driverId: '',
+        driverId: ''
       };
 
       await expect(service.updateDriverLocation(locationMissingDriverId))
@@ -116,12 +116,12 @@ describe('DriverTrackingService', () => {
         { longitude: -181, shouldFail: true, error: 'Longitude must be between -180 and 180' },
         { longitude: 181, shouldFail: true, error: 'Longitude must be between -180 and 180' },
         { accuracy: -1, shouldFail: true, error: 'Accuracy must be between 0 and 10000 meters' },
-        { accuracy: 10001, shouldFail: true, error: 'Accuracy must be between 0 and 10000 meters' },
+        { accuracy: 10001, shouldFail: true, error: 'Accuracy must be between 0 and 10000 meters' }
       ];
 
       for (const test of tests) {
         const testLocation = { ...validLocation, ...test };
-        
+
         if (test.shouldFail) {
           await expect(service.updateDriverLocation(testLocation))
             .rejects.toThrow(test.error);
@@ -140,7 +140,7 @@ describe('DriverTrackingService', () => {
         heading: '180',
         altitude: '100',
         timestamp: '2024-01-01T12:00:00.000Z',
-        companyId: 'company-456',
+        companyId: 'company-456'
       };
 
       mockRedis.hgetall.mockResolvedValue(redisData);
@@ -156,13 +156,13 @@ describe('DriverTrackingService', () => {
         heading: 180,
         altitude: 100,
         timestamp: new Date('2024-01-01T12:00:00.000Z'),
-        companyId: 'company-456',
+        companyId: 'company-456'
       });
     });
 
     it('should fallback to database when Redis has no data', async () => {
       mockRedis.hgetall.mockResolvedValue({});
-      
+
       const dbResult = {
         rows: [{
           driver_id: 'driver-123',
@@ -173,8 +173,8 @@ describe('DriverTrackingService', () => {
           speed: 25,
           heading: 180,
           altitude: 100,
-          timestamp: new Date('2024-01-01T12:00:00Z'),
-        }],
+          timestamp: new Date('2024-01-01T12:00:00Z')
+        }]
       };
       mockClient.query.mockResolvedValue(dbResult);
 
@@ -203,8 +203,8 @@ describe('DriverTrackingService', () => {
           latitude: 40.7128,
           longitude: -74.0060,
           timestamp: new Date(),
-          companyId: 'company-456',
-        },
+          companyId: 'company-456'
+        }
       ];
 
       mockRedis.get.mockResolvedValue(JSON.stringify(cachedDrivers));
@@ -213,7 +213,7 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128,
         longitude: -74.0060,
         radiusKm: 5,
-        companyId: 'company-456',
+        companyId: 'company-456'
       });
 
       expect(result).toEqual(cachedDrivers);
@@ -222,7 +222,7 @@ describe('DriverTrackingService', () => {
 
     it('should query database and cache results when no cache', async () => {
       mockRedis.get.mockResolvedValue(null);
-      
+
       const dbResult = {
         rows: [{
           driver_id: 'driver-1',
@@ -234,8 +234,8 @@ describe('DriverTrackingService', () => {
           heading: 180,
           altitude: 100,
           timestamp: new Date('2024-01-01T12:00:00Z'),
-          distance_meters: 1000,
-        }],
+          distance_meters: 1000
+        }]
       };
       mockClient.query.mockResolvedValue(dbResult);
 
@@ -243,7 +243,7 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128,
         longitude: -74.0060,
         radiusKm: 5,
-        companyId: 'company-456',
+        companyId: 'company-456'
       });
 
       expect(result).toHaveLength(1);
@@ -261,7 +261,7 @@ describe('DriverTrackingService', () => {
         radiusKm: 5,
         companyId: 'company-456',
         limit: 10,
-        excludeDriverIds: ['driver-exclude'],
+        excludeDriverIds: ['driver-exclude']
       });
 
       const queryCall = mockClient.query.mock.calls[0];
@@ -270,11 +270,11 @@ describe('DriverTrackingService', () => {
       expect(query).toContain('ST_DWithin');
       expect(query).toContain('ST_SetSRID');
       expect(params).toContain(-74.0060); // longitude
-      expect(params).toContain(40.7128);  // latitude
-      expect(params).toContain(5000);     // radius in meters
+      expect(params).toContain(40.7128); // latitude
+      expect(params).toContain(5000); // radius in meters
       expect(params).toContain('company-456');
       expect(params).toContain('driver-exclude');
-      expect(params).toContain(10);       // limit
+      expect(params).toContain(10); // limit
     });
   });
 
@@ -286,7 +286,7 @@ describe('DriverTrackingService', () => {
       currentJobId: 'job-456',
       lastLocationUpdate: new Date('2024-01-01T12:00:00Z'),
       batteryLevel: 85,
-      connectionQuality: 'good',
+      connectionQuality: 'good'
     };
 
     it('should update driver status in Redis', async () => {
@@ -299,7 +299,7 @@ describe('DriverTrackingService', () => {
           isAvailable: 'true',
           currentJobId: 'job-456',
           batteryLevel: '85',
-          connectionQuality: 'good',
+          connectionQuality: 'good'
         })
       );
       expect(mockRedis.expire).toHaveBeenCalledWith(
@@ -334,22 +334,22 @@ describe('DriverTrackingService', () => {
           latitude: 40.7128,
           longitude: -74.0060,
           timestamp: new Date(),
-          companyId: 'company-456',
+          companyId: 'company-456'
         },
         {
           driverId: 'driver-2',
           latitude: 40.7589,
           longitude: -73.9851,
           timestamp: new Date(),
-          companyId: 'company-456',
-        },
+          companyId: 'company-456'
+        }
       ];
 
       await service.batchUpdateLocations(locations);
 
       expect(mockRedis.pipeline).toHaveBeenCalled();
       const pipeline = mockRedis.pipeline();
-      
+
       // Should have called hmset for each location
       expect(pipeline.hmset).toHaveBeenCalledTimes(2);
       expect(pipeline.expire).toHaveBeenCalledTimes(2);
@@ -363,15 +363,15 @@ describe('DriverTrackingService', () => {
           latitude: 40.7128,
           longitude: -74.0060,
           timestamp: new Date(),
-          companyId: 'company-456',
+          companyId: 'company-456'
         },
         {
           driverId: '', // Invalid - missing driver ID
           latitude: 40.7589,
           longitude: -73.9851,
           timestamp: new Date(),
-          companyId: 'company-456',
-        },
+          companyId: 'company-456'
+        }
       ];
 
       await service.batchUpdateLocations(locations);
@@ -392,8 +392,8 @@ describe('DriverTrackingService', () => {
         exec: jest.fn().mockResolvedValue([
           [null, new Date(Date.now() - 2 * 60 * 1000).toISOString()], // 2 minutes ago - active
           [null, new Date(Date.now() - 10 * 60 * 1000).toISOString()], // 10 minutes ago - inactive
-          [null, new Date().toISOString()], // now - active
-        ]),
+          [null, new Date().toISOString()] // now - active
+        ])
       };
       mockRedis.pipeline.mockReturnValue(mockPipeline);
 
@@ -418,7 +418,7 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128,
         longitude: -74.0060,
         timestamp: new Date(),
-        companyId: 'company-456',
+        companyId: 'company-456'
       };
 
       const startTime = Date.now();
@@ -435,11 +435,11 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128 + i * 0.001,
         longitude: -74.0060 + i * 0.001,
         timestamp: new Date(),
-        companyId: 'company-456',
+        companyId: 'company-456'
       }));
 
       const promises = locations.map(location => service.updateDriverLocation(location));
-      
+
       await expect(Promise.all(promises)).resolves.not.toThrow();
     });
 
@@ -449,7 +449,7 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128 + i * 0.001,
         longitude: -74.0060 + i * 0.001,
         timestamp: new Date(),
-        companyId: 'company-456',
+        companyId: 'company-456'
       }));
 
       const startTime = Date.now();
@@ -472,7 +472,7 @@ describe('DriverTrackingService', () => {
         latitude: 40.7128,
         longitude: -74.0060,
         timestamp: new Date(),
-        companyId: 'company-456',
+        companyId: 'company-456'
       };
 
       await expect(service.updateDriverLocation(location))

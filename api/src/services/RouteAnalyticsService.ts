@@ -13,35 +13,35 @@ export interface RouteInsights {
   analysisId: string;
   dateRange: DateRange;
   zoneId?: string;
-  
+
   // General statistics
   totalRoutes: number;
   totalDistanceKm: number;
   totalDurationHours: number;
   averageSpeedKmh: number;
-  
+
   // Performance metrics
   onTimeDeliveryRate: number;
   averageDelayMinutes: number;
   efficiencyScore: number; // 0-100
-  
+
   // Pattern analysis
   commonRouteSegments: RoutePattern[];
   trafficPatterns: TrafficPattern[];
   driverBehaviorInsights: DriverBehaviorInsight[];
-  
+
   // Time-based patterns
   hourlyPerformance: HourlyPerformance[];
   dailyPerformance: DailyPerformance[];
-  
+
   // Delivery density analysis
   deliveryHeatmap: DeliveryHeatmapData;
   delayHotspots: DelayHotspot[];
-  
+
   // Predictive insights
   optimalDepartureTimes: OptimalDepartureTime[];
   routeOptimizationSuggestions: RouteOptimization[];
-  
+
   calculatedAt: Date;
   cacheExpiry?: Date;
 }
@@ -202,11 +202,11 @@ export class RouteAnalyticsService extends EventEmitter {
     }
 
     const client = await databaseConfig.connect();
-    
+
     try {
       // Get route segments for analysis
       const segments = await this.getRouteSegments(client, query);
-      
+
       if (segments.length === 0) {
         throw new Error('No route data found for the specified criteria');
       }
@@ -227,8 +227,8 @@ export class RouteAnalyticsService extends EventEmitter {
         this.analyzeDriverBehavior(client, segments),
         this.analyzeTimeBasedPerformance(client, query),
         this.performSpatialAnalysis(client, segments, query),
-        this.options.enablePredictiveAnalysis ? 
-          this.generatePredictiveInsights(client, query, segments) : 
+        this.options.enablePredictiveAnalysis ?
+          this.generatePredictiveInsights(client, query, segments) :
           this.getEmptyPredictiveInsights()
       ]);
 
@@ -236,35 +236,35 @@ export class RouteAnalyticsService extends EventEmitter {
         analysisId,
         dateRange: query.dateRange,
         zoneId: query.zoneId,
-        
+
         // Basic statistics
         totalRoutes: basicStats.totalRoutes,
         totalDistanceKm: basicStats.totalDistanceKm,
         totalDurationHours: basicStats.totalDurationHours,
         averageSpeedKmh: basicStats.averageSpeedKmh,
-        
+
         // Performance metrics
         onTimeDeliveryRate: basicStats.onTimeRate,
         averageDelayMinutes: basicStats.averageDelay,
         efficiencyScore: this.calculateEfficiencyScore(basicStats),
-        
+
         // Pattern analysis
         commonRouteSegments: commonPatterns,
-        trafficPatterns: trafficPatterns,
+        trafficPatterns,
         driverBehaviorInsights: behaviorInsights,
-        
+
         // Time-based patterns
         hourlyPerformance: timeBasedPerformance.hourly,
         dailyPerformance: timeBasedPerformance.daily,
-        
+
         // Spatial analysis
         deliveryHeatmap: spatialAnalysis.heatmap,
         delayHotspots: spatialAnalysis.hotspots,
-        
+
         // Predictive insights
         optimalDepartureTimes: predictiveInsights.departureTimes,
         routeOptimizationSuggestions: predictiveInsights.optimizations,
-        
+
         calculatedAt: new Date(),
         cacheExpiry: new Date(Date.now() + (this.options.cacheExpiryHours! * 60 * 60 * 1000))
       };
@@ -297,20 +297,20 @@ export class RouteAnalyticsService extends EventEmitter {
     format: 'csv' | 'json' | 'excel'
   ): Promise<Buffer | string> {
     const insights = await this.getAnalysisById(analysisId);
-    
+
     if (!insights) {
       throw new Error('Analysis not found');
     }
 
     switch (format) {
-      case 'csv':
-        return this.exportToCSV(insights);
-      case 'json':
-        return JSON.stringify(insights, null, 2);
-      case 'excel':
-        return this.exportToExcel(insights);
-      default:
-        throw new Error(`Unsupported export format: ${format}`);
+    case 'csv':
+      return this.exportToCSV(insights);
+    case 'json':
+      return JSON.stringify(insights, null, 2);
+    case 'excel':
+      return this.exportToExcel(insights);
+    default:
+      throw new Error(`Unsupported export format: ${format}`);
     }
   }
 
@@ -328,7 +328,7 @@ export class RouteAnalyticsService extends EventEmitter {
     recommendations: string[];
   }> {
     const client = await databaseConfig.connect();
-    
+
     try {
       // Get historical data for similar routes
       const historicalData = await this.getHistoricalRouteData(
@@ -342,10 +342,10 @@ export class RouteAnalyticsService extends EventEmitter {
       const baseTime = this.calculateBaseRouteTime(plannedRoute);
       const historicalAdjustment = this.calculateHistoricalAdjustment(historicalData);
       const trafficAdjustment = await this.calculateTrafficAdjustment(departureTime);
-      
+
       const estimatedDuration = baseTime * historicalAdjustment * trafficAdjustment;
       const confidence = Math.min(historicalData.length / 10, 1); // More data = higher confidence
-      
+
       let delayRisk: 'low' | 'medium' | 'high' = 'low';
       if (trafficAdjustment > 1.3) delayRisk = 'high';
       else if (trafficAdjustment > 1.15) delayRisk = 'medium';
@@ -395,7 +395,7 @@ export class RouteAnalyticsService extends EventEmitter {
     // Check Redis cache
     const redisKey = `analytics:${analysisId}`;
     const cached = await trackingRedis.get(redisKey);
-    
+
     if (cached) {
       const insights: RouteInsights = JSON.parse(cached);
       if (insights.cacheExpiry && new Date(insights.cacheExpiry) > new Date()) {
@@ -447,7 +447,7 @@ export class RouteAnalyticsService extends EventEmitter {
     sql += ' ORDER BY rs.started_at';
 
     const result = await client.query(sql, params);
-    
+
     return result.rows.map((row: any) => ({
       id: row.id,
       routeId: row.route_id,
@@ -481,10 +481,10 @@ export class RouteAnalyticsService extends EventEmitter {
     const totalDistance = segments.reduce((sum, s) => sum + s.distanceMeters, 0);
     const totalDuration = segments.reduce((sum, s) => sum + s.durationSeconds, 0);
     const totalDelay = segments.reduce((sum, s) => sum + s.trafficDelaySeconds, 0);
-    
+
     // Count unique routes
     const uniqueRoutes = new Set(segments.map(s => s.routeId)).size;
-    
+
     // Calculate on-time rate (delivery segments with < 15 min delay)
     const deliverySegments = segments.filter(s => s.segmentType === 'delivery');
     const onTimeDeliveries = deliverySegments.filter(s => s.trafficDelaySeconds < 900).length; // 15 minutes
@@ -578,7 +578,7 @@ export class RouteAnalyticsService extends EventEmitter {
     return result.rows.map((row: any) => {
       const avgDelay = parseFloat(row.avg_delay) / 60; // Convert to minutes
       let severity: 'low' | 'medium' | 'high' | 'extreme' = 'low';
-      
+
       if (avgDelay > 30) severity = 'extreme';
       else if (avgDelay > 20) severity = 'high';
       else if (avgDelay > 10) severity = 'medium';
@@ -749,7 +749,7 @@ export class RouteAnalyticsService extends EventEmitter {
     const hotspots: DelayHotspot[] = hotspotResult.rows.map((row: any) => {
       const avgDelay = parseFloat(row.avg_delay) / 60; // Convert to minutes
       let severity: 'low' | 'medium' | 'high' = 'low';
-      
+
       if (avgDelay > 20) severity = 'high';
       else if (avgDelay > 10) severity = 'medium';
 
@@ -763,7 +763,7 @@ export class RouteAnalyticsService extends EventEmitter {
         delayFrequency: (row.delay_count / deliverySegments.length) * 100,
         mainCauses: ['Traffic congestion', 'Road construction'], // Would be analyzed from data
         severity,
-        recommendation: `Consider alternative routes or schedule adjustments for this area`
+        recommendation: 'Consider alternative routes or schedule adjustments for this area'
       };
     });
 
@@ -830,7 +830,7 @@ export class RouteAnalyticsService extends EventEmitter {
     const speedScore = Math.min(stats.averageSpeedKmh / 50, 1) * 30; // Max 30 points
     const onTimeScore = (stats.onTimeRate / 100) * 40; // Max 40 points
     const delayScore = Math.max(0, (30 - stats.averageDelay) / 30) * 30; // Max 30 points
-    
+
     return Math.round(speedScore + onTimeScore + delayScore);
   }
 
@@ -844,14 +844,14 @@ export class RouteAnalyticsService extends EventEmitter {
 
   private generateTrafficRecommendation(severity: string, avgDelay: number): string {
     switch (severity) {
-      case 'extreme':
-        return `Severe delays (${avgDelay.toFixed(1)} min avg). Consider alternative routes or schedule adjustments.`;
-      case 'high':
-        return `High delays (${avgDelay.toFixed(1)} min avg). Monitor traffic conditions closely.`;
-      case 'medium':
-        return `Moderate delays (${avgDelay.toFixed(1)} min avg). Allow extra time for deliveries.`;
-      default:
-        return `Minor delays (${avgDelay.toFixed(1)} min avg). Current routes are efficient.`;
+    case 'extreme':
+      return `Severe delays (${avgDelay.toFixed(1)} min avg). Consider alternative routes or schedule adjustments.`;
+    case 'high':
+      return `High delays (${avgDelay.toFixed(1)} min avg). Monitor traffic conditions closely.`;
+    case 'medium':
+      return `Moderate delays (${avgDelay.toFixed(1)} min avg). Allow extra time for deliveries.`;
+    default:
+      return `Minor delays (${avgDelay.toFixed(1)} min avg). Current routes are efficient.`;
     }
   }
 
@@ -863,7 +863,7 @@ export class RouteAnalyticsService extends EventEmitter {
   private generateDeliveryHeatmap(deliverySegments: RouteSegment[]): DeliveryHeatmapData {
     // Simple grid-based heatmap generation
     const gridSize = 1000; // 1km grid cells
-    
+
     if (deliverySegments.length === 0) {
       return {
         gridSize,
@@ -875,7 +875,7 @@ export class RouteAnalyticsService extends EventEmitter {
     // Calculate bounds
     const lats = deliverySegments.map(s => s.endLocation.latitude);
     const lngs = deliverySegments.map(s => s.endLocation.longitude);
-    
+
     const bounds = {
       north: Math.max(...lats),
       south: Math.min(...lats),
@@ -892,9 +892,9 @@ export class RouteAnalyticsService extends EventEmitter {
       for (let y = 0; y < Math.min(cellsY, 50); y++) {
         const cellLng = bounds.west + (x / cellsX) * (bounds.east - bounds.west);
         const cellLat = bounds.south + (y / cellsY) * (bounds.north - bounds.south);
-        
+
         // Count deliveries in this cell (simplified)
-        const deliveriesInCell = deliverySegments.filter(s => 
+        const deliveriesInCell = deliverySegments.filter(s =>
           Math.abs(s.endLocation.latitude - cellLat) < 0.01 &&
           Math.abs(s.endLocation.longitude - cellLng) < 0.01
         );
@@ -930,7 +930,7 @@ export class RouteAnalyticsService extends EventEmitter {
       const totalDuration = routeSegments.reduce((sum, s) => sum + s.durationSeconds, 0);
       const totalDistance = routeSegments.reduce((sum, s) => sum + s.distanceMeters, 0);
       const totalDelay = routeSegments.reduce((sum, s) => sum + s.trafficDelaySeconds, 0);
-      
+
       const currentEfficiency = totalDistance > 0 ? (totalDistance / 1000) / (totalDuration / 3600) : 0;
       const delayImpact = totalDelay / totalDuration;
 
@@ -974,7 +974,7 @@ export class RouteAnalyticsService extends EventEmitter {
     // Cache in Redis
     const redisKey = `analytics:${analysisId}`;
     const expirySeconds = this.options.cacheExpiryHours! * 3600;
-    
+
     await trackingRedis.setex(redisKey, expirySeconds, JSON.stringify(insights));
   }
 
@@ -1025,12 +1025,12 @@ export class RouteAnalyticsService extends EventEmitter {
 
   private async calculateTrafficAdjustment(departureTime: Date): Promise<number> {
     const hour = departureTime.getHours();
-    
+
     // Simple traffic adjustment based on time of day
     if (hour >= 7 && hour <= 9) return 1.4; // Morning rush
     if (hour >= 17 && hour <= 19) return 1.3; // Evening rush
     if (hour >= 11 && hour <= 14) return 1.1; // Lunch time
-    
+
     return 1.0; // Off-peak
   }
 }

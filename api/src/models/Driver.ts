@@ -32,7 +32,7 @@ export interface LocationUpdate {
   isMoving: boolean;
   recordedAt: Date;
   createdAt: Date;
-  
+
   // GPS metadata
   provider?: 'GPS' | 'NETWORK' | 'PASSIVE';
   satellites?: number;

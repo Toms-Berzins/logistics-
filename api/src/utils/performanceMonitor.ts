@@ -25,13 +25,13 @@ class PerformanceMonitor {
   private errorCount = 0;
   private totalRequests = 0;
   private startTime = Date.now();
-  
+
   private thresholds: PerformanceThresholds = {
     redisLatencyMs: 10,
     databaseLatencyMs: 50,
     memoryUsageMB: 100,
     cpuUsagePercent: 80,
-    errorRatePercent: 5,
+    errorRatePercent: 5
   };
 
   // Track Redis performance
@@ -96,7 +96,7 @@ class PerformanceMonitor {
   async collectMetrics(): Promise<PerformanceMetrics> {
     const [redisLatency, databaseLatency] = await Promise.all([
       this.measureRedisLatency(),
-      this.measureDatabaseLatency(),
+      this.measureDatabaseLatency()
     ]);
 
     const metrics: PerformanceMetrics = {
@@ -107,7 +107,7 @@ class PerformanceMonitor {
       cpuUsage: this.getCurrentCpuUsage(),
       activeConnections: 0, // Would be populated by connection tracking
       locationUpdatesPerSecond: this.getLocationUpdatesPerSecond(),
-      errorRate: this.getErrorRate(),
+      errorRate: this.getErrorRate()
     };
 
     // Store metrics (keep last 100 entries)
@@ -165,15 +165,15 @@ class PerformanceMonitor {
         memoryUsage: `${(latestMetrics.memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
         cpuUsage: `${latestMetrics.cpuUsage.toFixed(2)}%`,
         locationUpdatesPerSecond: latestMetrics.locationUpdatesPerSecond.toFixed(2),
-        errorRate: `${latestMetrics.errorRate.toFixed(2)}%`,
+        errorRate: `${latestMetrics.errorRate.toFixed(2)}%`
       },
       averages: {
         redisLatency: `${avgRedisLatency.toFixed(2)}ms`,
-        databaseLatency: `${avgDatabaseLatency.toFixed(2)}ms`,
+        databaseLatency: `${avgDatabaseLatency.toFixed(2)}ms`
       },
       thresholds: this.thresholds,
       violations: this.checkThresholds(latestMetrics),
-      totalMetricsCollected: this.metrics.length,
+      totalMetricsCollected: this.metrics.length
     };
   }
 
@@ -183,16 +183,16 @@ class PerformanceMonitor {
       try {
         const metrics = await this.collectMetrics();
         const violations = this.checkThresholds(metrics);
-        
+
         if (violations.length > 0) {
           console.warn('Performance threshold violations:', violations);
         }
-        
+
         // Log performance summary every 5 minutes
         if (this.metrics.length % 10 === 0) {
           console.log('Performance Summary:', this.getPerformanceSummary());
         }
-        
+
       } catch (error) {
         console.error('Error collecting performance metrics:', error);
       }

@@ -48,7 +48,7 @@ export class MappingService extends EventEmitter {
    */
   async geocode(request: GeocodingRequest): Promise<GeocodingResult[]> {
     const cacheKey = `geocode:${JSON.stringify(request)}`;
-    
+
     // Check cache first
     if (this.config.caching.enabled) {
       const cached = await trackingRedis.get(cacheKey);
@@ -59,12 +59,12 @@ export class MappingService extends EventEmitter {
 
     const result = await this.executeWithFallback('geocoding', async (provider) => {
       switch (provider.name) {
-        case 'mapbox':
-          return this.mapboxGeocode(request);
-        case 'googlemaps':
-          return this.googleMapsGeocode(request);
-        default:
-          throw new Error(`Unsupported provider: ${provider.name}`);
+      case 'mapbox':
+        return this.mapboxGeocode(request);
+      case 'googlemaps':
+        return this.googleMapsGeocode(request);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
       }
     });
 
@@ -85,7 +85,7 @@ export class MappingService extends EventEmitter {
    */
   async reverseGeocode(request: ReverseGeocodingRequest): Promise<GeocodingResult[]> {
     const cacheKey = `reverse_geocode:${request.location.latitude},${request.location.longitude}`;
-    
+
     // Check cache first
     if (this.config.caching.enabled) {
       const cached = await trackingRedis.get(cacheKey);
@@ -96,12 +96,12 @@ export class MappingService extends EventEmitter {
 
     const result = await this.executeWithFallback('reverseGeocoding', async (provider) => {
       switch (provider.name) {
-        case 'mapbox':
-          return this.mapboxReverseGeocode(request);
-        case 'googlemaps':
-          return this.googleMapsReverseGeocode(request);
-        default:
-          throw new Error(`Unsupported provider: ${provider.name}`);
+      case 'mapbox':
+        return this.mapboxReverseGeocode(request);
+      case 'googlemaps':
+        return this.googleMapsReverseGeocode(request);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
       }
     });
 
@@ -122,7 +122,7 @@ export class MappingService extends EventEmitter {
    */
   async getDirections(request: DirectionsRequest): Promise<DirectionsResult> {
     const cacheKey = `directions:${JSON.stringify(request)}`;
-    
+
     // Check cache first
     if (this.config.caching.enabled) {
       const cached = await trackingRedis.get(cacheKey);
@@ -133,12 +133,12 @@ export class MappingService extends EventEmitter {
 
     const result = await this.executeWithFallback('directions', async (provider) => {
       switch (provider.name) {
-        case 'mapbox':
-          return this.mapboxDirections(request);
-        case 'googlemaps':
-          return this.googleMapsDirections(request);
-        default:
-          throw new Error(`Unsupported provider: ${provider.name}`);
+      case 'mapbox':
+        return this.mapboxDirections(request);
+      case 'googlemaps':
+        return this.googleMapsDirections(request);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
       }
     });
 
@@ -159,7 +159,7 @@ export class MappingService extends EventEmitter {
    */
   async getTrafficData(points: GeoPoint[]): Promise<TrafficData[]> {
     const cacheKey = `traffic:${JSON.stringify(points)}`;
-    
+
     // Check cache first
     if (this.config.caching.enabled) {
       const cached = await trackingRedis.get(cacheKey);
@@ -170,12 +170,12 @@ export class MappingService extends EventEmitter {
 
     const result = await this.executeWithFallback('trafficData', async (provider) => {
       switch (provider.name) {
-        case 'mapbox':
-          return this.mapboxTraffic(points);
-        case 'googlemaps':
-          return this.googleMapsTraffic(points);
-        default:
-          throw new Error(`Unsupported provider: ${provider.name}`);
+      case 'mapbox':
+        return this.mapboxTraffic(points);
+      case 'googlemaps':
+        return this.googleMapsTraffic(points);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
       }
     });
 
@@ -196,14 +196,14 @@ export class MappingService extends EventEmitter {
    */
   async getStaticMap(request: StaticMapRequest): Promise<string> {
     const provider = await this.getAvailableProvider('staticMaps');
-    
+
     switch (provider.name) {
-      case 'mapbox':
-        return this.mapboxStaticMap(request);
-      case 'googlemaps':
-        return this.googleMapsStaticMap(request);
-      default:
-        throw new Error(`No provider available for static maps`);
+    case 'mapbox':
+      return this.mapboxStaticMap(request);
+    case 'googlemaps':
+      return this.googleMapsStaticMap(request);
+    default:
+      throw new Error('No provider available for static maps');
     }
   }
 
@@ -212,7 +212,7 @@ export class MappingService extends EventEmitter {
    */
   async getDistanceMatrix(request: DistanceMatrixRequest): Promise<DistanceMatrixResult> {
     const cacheKey = `distance_matrix:${JSON.stringify(request)}`;
-    
+
     // Check cache first
     if (this.config.caching.enabled) {
       const cached = await trackingRedis.get(cacheKey);
@@ -223,12 +223,12 @@ export class MappingService extends EventEmitter {
 
     const result = await this.executeWithFallback('distanceMatrix', async (provider) => {
       switch (provider.name) {
-        case 'mapbox':
-          return this.mapboxDistanceMatrix(request);
-        case 'googlemaps':
-          return this.googleMapsDistanceMatrix(request);
-        default:
-          throw new Error(`Unsupported provider: ${provider.name}`);
+      case 'mapbox':
+        return this.mapboxDistanceMatrix(request);
+      case 'googlemaps':
+        return this.googleMapsDistanceMatrix(request);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
       }
     });
 
@@ -309,16 +309,16 @@ export class MappingService extends EventEmitter {
     for (const [name, provider] of this.providers) {
       try {
         switch (name) {
-          case 'mapbox':
-            await this.testMapboxConnection();
-            status.set(name, true);
-            break;
-          case 'googlemaps':
-            await this.testGoogleMapsConnection();
-            status.set(name, true);
-            break;
-          default:
-            status.set(name, false);
+        case 'mapbox':
+          await this.testMapboxConnection();
+          status.set(name, true);
+          break;
+        case 'googlemaps':
+          await this.testGoogleMapsConnection();
+          status.set(name, true);
+          break;
+        default:
+          status.set(name, false);
         }
       } catch (error) {
         console.error(`Provider ${name} is unavailable:`, error);
@@ -429,7 +429,7 @@ export class MappingService extends EventEmitter {
 
         const result = await operation(provider);
         this.retryCount = 0; // Reset retry count on success
-        
+
         // Emit success event
         this.emit('providerSuccess', {
           provider: provider.name,
@@ -441,7 +441,7 @@ export class MappingService extends EventEmitter {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
         console.warn(`Provider ${provider.name} failed for ${capability}:`, lastError.message);
-        
+
         // Mark provider as temporarily unavailable if needed
         if (this.shouldMarkProviderUnavailable(lastError)) {
           provider.isAvailable = false;
@@ -529,7 +529,7 @@ export class MappingService extends EventEmitter {
       'service unavailable'
     ];
 
-    return unavailableErrors.some(err => 
+    return unavailableErrors.some(err =>
       error.message.toLowerCase().includes(err)
     );
   }
@@ -559,7 +559,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/geocoding/v5/mapbox.places/${encodeURIComponent(request.address)}.json?${params}`);
-    
+
     return response.data.features.map((feature: any) => this.mapboxFeatureToGeocodingResult(feature));
   }
 
@@ -579,7 +579,7 @@ export class MappingService extends EventEmitter {
     const response = await client.get(
       `/geocoding/v5/mapbox.places/${request.location.longitude},${request.location.latitude}.json?${params}`
     );
-    
+
     return response.data.features.map((feature: any) => this.mapboxFeatureToGeocodingResult(feature));
   }
 
@@ -594,7 +594,7 @@ export class MappingService extends EventEmitter {
     ].join(';');
 
     const profile = this.mapTravelModeToMapboxProfile(request.travelMode);
-    
+
     const params = new URLSearchParams({
       access_token: token,
       geometries: 'geojson',
@@ -607,7 +607,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/directions/v5/mapbox/${profile}/${coordinates}?${params}`);
-    
+
     return this.mapboxDirectionsToDirectionsResult(response.data);
   }
 
@@ -628,22 +628,22 @@ export class MappingService extends EventEmitter {
   private mapboxStaticMap(request: StaticMapRequest): string {
     const token = this.config.providers.mapbox!.accessToken;
     const { center, zoom, size } = request;
-    
-    let url = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static`;
-    
+
+    let url = 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static';
+
     // Add markers
     if (request.markers && request.markers.length > 0) {
-      const markers = request.markers.map(marker => 
+      const markers = request.markers.map(marker =>
         `pin-s+${marker.color || 'ff0000'}(${marker.location.longitude},${marker.location.latitude})`
       ).join(',');
       url += `/${markers}`;
     }
-    
+
     url += `/${center.longitude},${center.latitude},${zoom}`;
     url += `/${size.width}x${size.height}`;
     url += `${request.scale === 2 ? '@2x' : ''}`;
     url += `?access_token=${token}`;
-    
+
     return url;
   }
 
@@ -667,7 +667,7 @@ export class MappingService extends EventEmitter {
     });
 
     const response = await client.get(`/directions-matrix/v1/mapbox/${profile}/${coordinates}?${params}`);
-    
+
     return this.mapboxMatrixToDistanceMatrixResult(response.data, request);
   }
 
@@ -698,7 +698,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/geocode/json?${params}`);
-    
+
     if (response.data.status !== 'OK') {
       throw new Error(`Google Maps API error: ${response.data.status}`);
     }
@@ -724,7 +724,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/geocode/json?${params}`);
-    
+
     if (response.data.status !== 'OK') {
       throw new Error(`Google Maps API error: ${response.data.status}`);
     }
@@ -752,7 +752,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/directions/json?${params}`);
-    
+
     if (response.data.status !== 'OK') {
       throw new Error(`Google Maps API error: ${response.data.status}`);
     }
@@ -777,14 +777,14 @@ export class MappingService extends EventEmitter {
   private googleMapsStaticMap(request: StaticMapRequest): string {
     const apiKey = this.config.providers.googlemaps!.apiKey;
     const { center, zoom, size } = request;
-    
-    let url = `https://maps.googleapis.com/maps/api/staticmap`;
+
+    let url = 'https://maps.googleapis.com/maps/api/staticmap';
     url += `?center=${center.latitude},${center.longitude}`;
     url += `&zoom=${zoom}`;
     url += `&size=${size.width}x${size.height}`;
     url += `&maptype=${request.maptype || 'roadmap'}`;
     url += `&key=${apiKey}`;
-    
+
     // Add markers
     if (request.markers && request.markers.length > 0) {
       request.markers.forEach(marker => {
@@ -792,7 +792,7 @@ export class MappingService extends EventEmitter {
         url += `|${marker.location.latitude},${marker.location.longitude}`;
       });
     }
-    
+
     return url;
   }
 
@@ -813,7 +813,7 @@ export class MappingService extends EventEmitter {
     }
 
     const response = await client.get(`/distancematrix/json?${params}`);
-    
+
     if (response.data.status !== 'OK') {
       throw new Error(`Google Maps API error: ${response.data.status}`);
     }
@@ -911,7 +911,7 @@ export class MappingService extends EventEmitter {
 
   private parseMapboxComponents(context: any[]): any {
     const components: any = {};
-    
+
     context.forEach(item => {
       if (item.id.includes('country')) {
         components.country = item.text;
@@ -923,16 +923,16 @@ export class MappingService extends EventEmitter {
         components.locality = item.text;
       }
     });
-    
+
     return components;
   }
 
   private parseGoogleMapsComponents(components: any[]): any {
     const result: any = {};
-    
+
     components.forEach(component => {
       const types = component.types;
-      
+
       if (types.includes('street_number')) {
         result.streetNumber = component.long_name;
       } else if (types.includes('route')) {
@@ -949,7 +949,7 @@ export class MappingService extends EventEmitter {
         result.postalCode = component.long_name;
       }
     });
-    
+
     return result;
   }
 
@@ -1027,15 +1027,15 @@ export class MappingService extends EventEmitter {
   private mapboxMatrixToDistanceMatrixResult(data: any, request: DistanceMatrixRequest): DistanceMatrixResult {
     const originAddresses = request.origins.map(o => this.formatCoordinate(o));
     const destinationAddresses = request.destinations.map(d => this.formatCoordinate(d));
-    
+
     const rows = data.durations.map((row: number[], rowIndex: number) => ({
       elements: row.map((duration: number, colIndex: number) => {
         const distance = data.distances?.[rowIndex]?.[colIndex];
-        
+
         if (duration === null || duration === undefined) {
           return { status: 'NOT_FOUND' as const };
         }
-        
+
         return {
           status: 'OK' as const,
           distance: distance ? {
@@ -1049,7 +1049,7 @@ export class MappingService extends EventEmitter {
         };
       })
     }));
-    
+
     return {
       originAddresses,
       destinationAddresses,

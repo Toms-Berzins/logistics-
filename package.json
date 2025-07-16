@@ -1,28 +1,37 @@
 {
   "name": "logistics-platform",
   "version": "1.0.0",
-  "description": "MVP dispatch system for small transportation companies",
+  "description": "Real-time driver location tracking system with high-performance backend and reactive frontend",
   "main": "index.js",
   "private": true,
   "workspaces": [
     "api",
-    "frontend"
+    "frontend",
+    "mobile"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\" \"npm run dev:mobile\"",
     "dev:api": "npm run dev --workspace=api",
     "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:mobile": "npm run dev --workspace=mobile",
     "build": "npm run build --workspace=api && npm run build --workspace=frontend",
     "test": "npm run test --workspace=api && npm run test --workspace=frontend",
     "lint": "npm run lint --workspace=api && npm run lint --workspace=frontend",
+    "db:setup": "cd database && psql -f spatial-triggers.sql",
+    "db:reset": "cd database && psql -f reset-database.sql",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.0.1",
+    "typescript": "^5.2.2",
+    "@types/node": "^20.8.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

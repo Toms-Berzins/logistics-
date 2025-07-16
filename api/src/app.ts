@@ -78,12 +78,12 @@ server.listen(PORT, async () => {
   try {
     await testConnection();
     console.log('✅ Database connected successfully');
-    
+
     await redisClient.ping();
     console.log('✅ Redis connected successfully');
-    
+
     console.log(`🚀 Server running on port ${PORT}`);
-    
+
     // Start performance monitoring in production
     if (process.env.NODE_ENV === 'production') {
       performanceMonitor.startMonitoring();

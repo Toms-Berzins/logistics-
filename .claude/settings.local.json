@@ -13,7 +13,9 @@
       "Bash(curl:*)",
       "Bash(pkill:*)",
       "Bash(npm test)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { mappingService } from '../services/MappingService';
-import { 
-  GeocodingRequest, 
-  ReverseGeocodingRequest, 
-  DirectionsRequest, 
-  StaticMapRequest, 
+import {
+  GeocodingRequest,
+  ReverseGeocodingRequest,
+  DirectionsRequest,
+  StaticMapRequest,
   DistanceMatrixRequest,
   DistanceMatrixResult,
   BatchGeocodingRequest,
-  GeoPoint 
+  GeoPoint
 } from '../models/Mapping';
 
 const router = Router();
@@ -66,7 +66,7 @@ router.post('/reverse-geocode', async (req: AuthenticatedRequest, res: Response,
     };
 
     // Validate required fields
-    if (!reverseGeocodingRequest.location || 
+    if (!reverseGeocodingRequest.location ||
         typeof reverseGeocodingRequest.location.latitude !== 'number' ||
         typeof reverseGeocodingRequest.location.longitude !== 'number') {
       return res.status(400).json({
@@ -197,7 +197,7 @@ router.post('/static-map', async (req: AuthenticatedRequest, res: Response, next
     };
 
     // Validate required fields
-    if (!staticMapRequest.center || 
+    if (!staticMapRequest.center ||
         typeof staticMapRequest.center.latitude !== 'number' ||
         typeof staticMapRequest.center.longitude !== 'number') {
       return res.status(400).json({
@@ -354,7 +354,7 @@ router.post('/batch-geocode', async (req: AuthenticatedRequest, res: Response, n
 router.get('/status', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const providerStatus = await mappingService.checkProviderStatus();
-    
+
     const status = {
       providers: Object.fromEntries(providerStatus),
       timestamp: new Date().toISOString()
@@ -386,9 +386,9 @@ router.post('/nearby', async (req: AuthenticatedRequest, res: Response, next: Ne
 
     // For now, use geocoding to find nearby places (simplified implementation)
     // In production, you'd use Places API for this
-    const searchQuery = keyword ? `${keyword} near ${location.latitude},${location.longitude}` : 
-                       type ? `${type} near ${location.latitude},${location.longitude}` :
-                       `places near ${location.latitude},${location.longitude}`;
+    const searchQuery = keyword ? `${keyword} near ${location.latitude},${location.longitude}` :
+      type ? `${type} near ${location.latitude},${location.longitude}` :
+        `places near ${location.latitude},${location.longitude}`;
 
     const results = await mappingService.geocode({ address: searchQuery });
 
@@ -437,7 +437,7 @@ router.post('/optimize-route', async (req: AuthenticatedRequest, res: Response, 
     // Simple route optimization using distance matrix
     // In production, you'd use specialized route optimization algorithms
     const allPoints = [origin, ...waypoints, destination].filter(Boolean);
-    
+
     if (allPoints.length < 2) {
       return res.status(400).json({
         success: false,
@@ -489,10 +489,10 @@ function calculateDistance(point1: GeoPoint, point2: GeoPoint): number {
   const Δφ = (point2.latitude - point1.latitude) * Math.PI / 180;
   const Δλ = (point2.longitude - point1.longitude) * Math.PI / 180;
 
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
             Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
 }

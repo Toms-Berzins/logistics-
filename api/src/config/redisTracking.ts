@@ -14,7 +14,7 @@ export const trackingRedis = new Redis({
   keepAlive: 10000, // 10 seconds in ms, previously 'true'
   // Performance optimizations
   commandTimeout: 5000,
-  connectTimeout: 10000,
+  connectTimeout: 10000
 });
 
 // Redis key patterns for driver tracking
@@ -22,10 +22,10 @@ export const REDIS_KEYS = {
   DRIVER_LOCATION: (driverId: string) => `driver:location:${driverId}`,
   DRIVER_STATUS: (driverId: string) => `driver:status:${driverId}`,
   DRIVER_ROUTE: (driverId: string) => `driver:route:${driverId}`,
-  NEARBY_DRIVERS: (lat: number, lng: number, radius: number) => 
+  NEARBY_DRIVERS: (lat: number, lng: number, radius: number) =>
     `nearby:${lat.toFixed(6)}:${lng.toFixed(6)}:${radius}`,
   ACTIVE_DRIVERS: 'drivers:active',
-  COMPANY_DRIVERS: (companyId: string) => `company:${companyId}:drivers`,
+  COMPANY_DRIVERS: (companyId: string) => `company:${companyId}:drivers`
 } as const;
 
 // Redis TTL constants (in seconds)
@@ -33,7 +33,7 @@ export const TTL = {
   DRIVER_LOCATION: 300, // 5 minutes
   DRIVER_STATUS: 600, // 10 minutes
   NEARBY_CACHE: 30, // 30 seconds
-  ROUTE_CACHE: 1800, // 30 minutes
+  ROUTE_CACHE: 1800 // 30 minutes
 } as const;
 
 // Event listeners for Redis
