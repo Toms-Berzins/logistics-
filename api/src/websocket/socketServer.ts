@@ -3,7 +3,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { LocationHandler } from './handlers/locationHandler';
 import { DriverTrackingService } from '../services/tracking/DriverTrackingService';
 import { DriverLocationCache } from '../services/cache/DriverLocationCache';
-import { RedisClient } from '../services/redis/RedisClient';
+import { redisClient } from '../config/redis';
 import { createServer } from 'http';
 import { Express } from 'express';
 
@@ -11,15 +11,11 @@ export class SocketServer {
   private io: Server;
   private locationHandler: LocationHandler;
   private driverTrackingService: DriverTrackingService;
-  private redisClient: RedisClient;
 
   constructor(
     app: Express,
-    redisClient: RedisClient,
     port: number = 3001
   ) {
-    this.redisClient = redisClient;
-
     // Create HTTP server
     const httpServer = createServer(app);
 
@@ -54,7 +50,7 @@ export class SocketServer {
 
   private async setupRedisAdapter(): Promise<void> {
     try {
-      const pubClient = this.redisClient.getClient();
+      const pubClient = redisClient;
       const subClient = pubClient.duplicate();
 
       await subClient.connect();
