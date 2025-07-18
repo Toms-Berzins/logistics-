@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com; connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com ws://localhost:* wss://localhost:* http://localhost:* https://localhost:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://api.mapbox.com; worker-src 'self' blob:; child-src blob:;",
+          },
         ],
       },
       {

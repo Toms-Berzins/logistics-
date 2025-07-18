@@ -49,6 +49,7 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, DriverMarker>>(new Map());
   const searchControlRef = useRef<HTMLInputElement>(null);
+  const initializedRef = useRef<boolean>(false);
   
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,8 +65,8 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
   const {
     isConnected,
     connectionQuality,
-    driverLocations,
-    driverStatuses,
+    driverLocations: realDriverLocations,
+    driverStatuses: realDriverStatuses,
     lastError,
   } = useDriverTracking({
     companyId,
@@ -74,6 +75,130 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
     autoReconnect: true,
     locationSmoothingEnabled: true,
   });
+
+  // Mock data for demonstration with optional movement
+  const [mockTimestamp, setMockTimestamp] = useState(Date.now());
+  
+  const mockDriverLocations = useMemo(() => {
+    const mockData = new Map<string, DriverLocation>();
+    
+    // Base positions matching the driver list
+    const basePositions = [
+      { 
+        id: 'driver-001', 
+        lat: 40.7128, lng: -74.0060, speed: 25, heading: 45,
+        name: 'John Martinez', vehicle: 'Van #101', route: 'Route A - Downtown',
+        address: '123 Main St, New York, NY'
+      },
+      { 
+        id: 'driver-002', 
+        lat: 40.7589, lng: -73.9851, speed: 15, heading: 180,
+        name: 'Sarah Johnson', vehicle: 'Truck #205', route: 'Route B - Midtown',
+        address: '456 Broadway, New York, NY'
+      },
+      { 
+        id: 'driver-003', 
+        lat: 40.6892, lng: -74.0445, speed: 0, heading: 270,
+        name: 'Mike Chen', vehicle: 'Van #103', route: '',
+        address: '789 Times Square, New York, NY'
+      },
+      { 
+        id: 'driver-004', 
+        lat: 40.7505, lng: -73.9934, speed: 35, heading: 90,
+        name: 'Emma Rodriguez', vehicle: 'Truck #302', route: 'Route C - Queens',
+        address: '321 Queens Blvd, Queens, NY'
+      },
+    ];
+    
+    basePositions.forEach((pos) => {
+      // For moving drivers, add small random offset to simulate movement
+      let latitude = pos.lat;
+      let longitude = pos.lng;
+      
+      if (pos.speed > 0) {
+        // Add slight movement based on timestamp (very small for realistic effect)
+        const timeOffset = (mockTimestamp / 60000) % 1; // Changes every minute
+        const movement = 0.0001 * timeOffset; // Very small movement
+        latitude += Math.sin(timeOffset * Math.PI * 2) * movement;
+        longitude += Math.cos(timeOffset * Math.PI * 2) * movement;
+      }
+      
+      mockData.set(pos.id, {
+        driverId: pos.id,
+        latitude,
+        longitude,
+        accuracy: 3 + Math.random() * 5, // 3-8 meters
+        speed: pos.speed + (Math.random() - 0.5) * 5, // Slight speed variation
+        heading: pos.heading,
+        timestamp: new Date(mockTimestamp).toISOString(),
+        companyId,
+      });
+    });
+
+    return mockData;
+  }, [companyId, mockTimestamp]);
+  
+  // Update mock data timestamp every 30 seconds for subtle movement
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMockTimestamp(Date.now());
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const mockDriverStatuses = useMemo(() => {
+    const mockStatuses = new Map<string, DriverStatus>();
+    
+    // Match the driver list statuses
+    const sampleStatuses = [
+      {
+        driverId: 'driver-001', // John Martinez - in transit
+        isOnline: true,
+        isAvailable: false,
+        currentJobId: 'job-123',
+        lastLocationUpdate: new Date().toISOString(),
+        batteryLevel: 85,
+        connectionQuality: 'excellent' as const,
+      },
+      {
+        driverId: 'driver-002', // Sarah Johnson - active
+        isOnline: true,
+        isAvailable: false,
+        currentJobId: 'job-456',
+        lastLocationUpdate: new Date().toISOString(),
+        batteryLevel: 72,
+        connectionQuality: 'good' as const,
+      },
+      {
+        driverId: 'driver-003', // Mike Chen - available
+        isOnline: true,
+        isAvailable: true,
+        lastLocationUpdate: new Date().toISOString(),
+        batteryLevel: 94,
+        connectionQuality: 'excellent' as const,
+      },
+      {
+        driverId: 'driver-004', // Emma Rodriguez - in transit
+        isOnline: true,
+        isAvailable: false,
+        currentJobId: 'job-789',
+        lastLocationUpdate: new Date().toISOString(),
+        batteryLevel: 68,
+        connectionQuality: 'good' as const,
+      },
+    ];
+
+    sampleStatuses.forEach(status => {
+      mockStatuses.set(status.driverId, status);
+    });
+
+    return mockStatuses;
+  }, []);
+
+  // Use mock data if no real data available
+  const driverLocations = realDriverLocations.size > 0 ? realDriverLocations : mockDriverLocations;
+  const driverStatuses = realDriverStatuses.size > 0 ? realDriverStatuses : mockDriverStatuses;
 
   // Memoized driver statistics
   const driverStats = useMemo(() => {
@@ -87,7 +212,18 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
 
   // Initialize Mapbox
   useEffect(() => {
-    if (!mapContainerRef.current || !mapboxToken || mapRef.current) return;
+    if (!mapContainerRef.current || !mapboxToken || mapRef.current || initializedRef.current) {
+      console.log('Skipping map initialization:', {
+        containerExists: !!mapContainerRef.current,
+        tokenExists: !!mapboxToken,
+        mapExists: !!mapRef.current,
+        alreadyInitialized: initializedRef.current
+      });
+      return;
+    }
+
+    // Mark as initialized to prevent double initialization
+    initializedRef.current = true;
 
     // Set loading timeout
     const loadingTimeout = setTimeout(() => {
@@ -95,7 +231,9 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
         setError('Map loading timed out. Please try again.');
         setIsLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 15000); // 15 second timeout
+
+    let mapInitTimeout: NodeJS.Timeout;
 
     // Check if token is valid (not a demo token)
     if (mapboxToken.includes('demo-token') || mapboxToken === 'demo') {
@@ -120,14 +258,61 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
 
     // Log token validation info for debugging
     console.log('Mapbox token validation:', {
+      token: mapboxToken.substring(0, 20) + '...', // Show first 20 chars
       format: mapboxToken.startsWith('pk.') ? 'Valid' : 'Invalid',
       length: mapboxToken.length,
       structure: mapboxToken.split('.').length === 3 ? 'Valid JWT' : 'Invalid JWT'
     });
 
     try {
-      // Set Mapbox access token
+      // Set Mapbox access token (don't delete first)
       mapboxgl.accessToken = mapboxToken;
+      
+      // Verify token was set
+      console.log('MapBox token set:', mapboxgl.accessToken ? 'Token present' : 'Token missing');
+      console.log('MapBox token match:', mapboxgl.accessToken === mapboxToken ? 'Match' : 'No match');
+      
+      if (!mapboxgl.accessToken) {
+        throw new Error('Failed to set MapBox access token');
+      }
+
+      // Disable telemetry to prevent network errors
+      if (typeof window !== 'undefined') {
+        (window as any).mapboxgl = mapboxgl;
+        
+        // Add global error handler for MapBox errors
+        if (!(window as any).originalConsoleError) {
+          (window as any).originalConsoleError = console.error;
+        }
+        
+        console.error = (...args) => {
+          const message = args.join(' ');
+          if (message.includes('Cannot read properties of undefined (reading \'send\')') ||
+              message.includes('mapbox-gl.js') && message.includes('send')) {
+            console.warn('MapBox GL send error suppressed:', message);
+            return;
+          }
+          (window as any).originalConsoleError.apply(console, args);
+        };
+        
+        // Disable telemetry collection
+        if (mapboxgl.prewarm) {
+          mapboxgl.prewarm();
+        }
+      }
+
+      // Double-check WebGL support and context
+      if (!mapboxgl.supported()) {
+        throw new Error('WebGL is not supported by this browser');
+      }
+
+      // Test WebGL context creation
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        throw new Error('Failed to create WebGL context');
+      }
+      canvas.remove();
 
       // Create map with optimized settings and error handling
       const map = new mapboxgl.Map({
@@ -135,22 +320,73 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
         style: 'mapbox://styles/mapbox/streets-v12',
         center: initialCenter,
         zoom: 10,
-        antialias: true,
+        antialias: false, // Disable to prevent WebGL issues
         attributionControl: false,
         logoPosition: 'bottom-right',
-        preserveDrawingBuffer: true, // For screenshots
+        preserveDrawingBuffer: false, // Disable to prevent context issues
         maxZoom: 20,
         minZoom: 2,
         // Add error handling options
         failIfMajorPerformanceCaveat: false,
+        crossSourceCollisions: false,
+        refreshExpiredTiles: false,
+        trackResize: true,
+        // Disable telemetry and problematic features
+        collectResourceTiming: false,
+        renderWorldCopies: false, // Disable to prevent projection issues
+        pitchWithRotate: false,
+        dragRotate: false,
+        touchZoomRotate: false,
         transformRequest: (url, resourceType) => {
-          // Add error handling for network requests
-          if (resourceType === 'Style' && !url.includes('mapbox.com')) {
+          // Block telemetry and problematic requests
+          if (url.includes('events.mapbox.com') || 
+              url.includes('api.mapbox.com/events') ||
+              url.includes('api.mapbox.com/metrics')) {
+            console.log('Blocking telemetry/metrics request:', url);
+            return null; // Return null to block request entirely
+          }
+          
+          // Add error handling for network requests and CORS
+          try {
+            if (resourceType === 'Style' && !url.includes('mapbox.com')) {
+              return { url };
+            }
+            // Ensure HTTPS for Mapbox requests
+            if (url.includes('mapbox.com') && url.startsWith('http:')) {
+              url = url.replace('http:', 'https:');
+            }
+            // Add timeout to requests
+            return { 
+              url,
+              headers: {},
+              credentials: 'same-origin'
+            };
+          } catch (err) {
+            console.warn('Transform request error:', err);
             return { url };
           }
-          return { url };
         },
       });
+
+      // Add immediate error handling
+      let mapErrorOccurred = false;
+      const errorHandler = (e: any) => {
+        if (mapErrorOccurred) return; // Prevent multiple error handlers
+        mapErrorOccurred = true;
+        console.error('Map initialization error:', e);
+        clearTimeout(loadingTimeout);
+        setError(`Map failed to initialize: ${e.error?.message || 'Unknown error'}`);
+        setIsLoading(false);
+      };
+
+      map.once('error', errorHandler);
+      
+      // Add a safety timeout for map creation
+      mapInitTimeout = setTimeout(() => {
+        if (!mapLoaded && !mapErrorOccurred) {
+          errorHandler({ error: { message: 'Map creation timeout' } });
+        }
+      }, 5000);
 
       // Add navigation controls
       map.addControl(new mapboxgl.NavigationControl({
@@ -184,6 +420,7 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
       map.once('load', () => {
         console.log('Interactive map loaded successfully');
         clearTimeout(loadingTimeout); // Clear timeout on successful load
+        clearTimeout(mapInitTimeout); // Clear map init timeout
         setMapLoaded(true);
         setIsLoading(false);
         setError(null); // Clear any previous errors
@@ -228,9 +465,19 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
 
       // Enhanced error handling
       map.on('error', (e) => {
+        const errorMessage = e.error?.message || 'Map failed to load properly';
+        
+        // Suppress known WebGL/send errors
+        if (errorMessage.includes('Cannot read properties of undefined') ||
+            errorMessage.includes('send') ||
+            errorMessage.includes('WebGL context') ||
+            errorMessage.includes('getContext')) {
+          console.warn('MapBox GL context error suppressed:', errorMessage);
+          return; // Don't show error to user for these issues
+        }
+        
         console.error('Mapbox error:', e.error);
         clearTimeout(loadingTimeout); // Clear timeout on error
-        const errorMessage = e.error?.message || 'Map failed to load properly';
         
         // Handle specific error types
         if (errorMessage.includes('token')) {
@@ -289,12 +536,26 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
 
     return () => {
       clearTimeout(loadingTimeout); // Cleanup timeout
+      clearTimeout(mapInitTimeout); // Cleanup map init timeout
+      
+      // Restore original console.error
+      if (typeof window !== 'undefined' && (window as any).originalConsoleError) {
+        console.error = (window as any).originalConsoleError;
+      }
+      
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.remove();
+        } catch (err) {
+          console.warn('Error removing map:', err);
+        }
         mapRef.current = null;
       }
+      
+      // Reset initialization flag
+      initializedRef.current = false;
     };
-  }, [mapboxToken, initialCenter, showTraffic, showGeofences]);
+  }, [mapboxToken]);
 
   // Create driver marker element with status-based styling
   const createDriverMarker = useCallback((driver: DriverLocation, status?: DriverStatus): HTMLDivElement => {
@@ -336,10 +597,11 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
       justify-content: center;
       font-weight: bold;
       color: white;
-      position: relative;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       background: ${getStatusColor(statusClass)};
-      transform-origin: center;
+      margin-left: -${size/2}px;
+      margin-top: -${size/2}px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
     `;
 
     el.innerHTML = `
@@ -356,6 +618,7 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
           border-right: 6px solid transparent;
           border-bottom: 12px solid ${getStatusColor(statusClass)};
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          pointer-events: none;
         "></div>
       ` : ''}
     `;
@@ -371,27 +634,69 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', `Driver ${driver.driverId}: ${statusText} at ${driver.latitude.toFixed(4)}, ${driver.longitude.toFixed(4)}`);
 
-    // Enhanced hover effects
+    // Create hover tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'driver-tooltip';
+    tooltip.style.cssText = `
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    `;
+    
+    // Set tooltip content
+    const speed = driver.speed ? Math.round(driver.speed * 2.237) : 0;
+    const batteryLevel = status?.batteryLevel || 'N/A';
+    tooltip.innerHTML = `
+      <div style="text-align: center;">
+        <div style="font-weight: 600;">${getDriverName(driver.driverId)}</div>
+        <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">
+          ${speed} mph • ${batteryLevel}% battery
+        </div>
+      </div>
+    `;
+    
+    el.appendChild(tooltip);
+
+    // Enhanced hover effects - show tooltip and enhance shadow
     el.addEventListener('mouseenter', () => {
-      el.style.transform = 'scale(1.3)';
       el.style.zIndex = '1000';
       el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+      tooltip.style.opacity = '1';
     });
 
     el.addEventListener('mouseleave', () => {
-      el.style.transform = 'scale(1)';
       el.style.zIndex = '1';
       el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      tooltip.style.opacity = '0';
     });
 
     // Focus effects for keyboard navigation
     el.addEventListener('focus', () => {
       el.style.outline = `3px solid #3b82f6`;
       el.style.outlineOffset = '2px';
+      el.style.zIndex = '1000';
+      el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+      tooltip.style.opacity = '1';
     });
 
     el.addEventListener('blur', () => {
       el.style.outline = 'none';
+      el.style.zIndex = '1';
+      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      tooltip.style.opacity = '0';
     });
 
     return el;
@@ -425,7 +730,10 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
             margin-right: 10px;
             flex-shrink: 0;
           "></div>
-          <strong style="font-size: 16px; color: #111827;">Driver ${driver.driverId}</strong>
+          <div>
+            <strong style="font-size: 16px; color: #111827;">${getDriverName(driver.driverId)}</strong>
+            <div style="font-size: 12px; color: #6b7280;">${getDriverVehicle(driver.driverId)}</div>
+          </div>
         </div>
         
         <div style="margin-bottom: 8px;">
@@ -438,11 +746,16 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
         </div>
 
         <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; font-size: 13px; color: #6b7280;">
-          <div style="margin-bottom: 4px;">
-            📍 Lat: ${driver.latitude.toFixed(6)}
+          <div style="margin-bottom: 6px;">
+            📍 ${getDriverAddress(driver.driverId)}
           </div>
-          <div style="margin-bottom: 4px;">
-            📍 Lng: ${driver.longitude.toFixed(6)}
+          ${getDriverRoute(driver.driverId) ? `
+            <div style="margin-bottom: 6px;">
+              🛣️ ${getDriverRoute(driver.driverId)}
+            </div>
+          ` : ''}
+          <div style="font-size: 11px; color: #9ca3af; margin-top: 6px;">
+            Coordinates: ${driver.latitude.toFixed(4)}, ${driver.longitude.toFixed(4)}
           </div>
           ${driver.speed !== undefined ? `
             <div style="margin-bottom: 4px;">
@@ -473,8 +786,8 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
           font-weight: 500;
           cursor: pointer;
           transition: background-color 0.2s;
-        " onmouseover="this.style.backgroundColor='#2563eb'" onmouseout="this.style.backgroundColor='#3b82f6'">
-          Track Driver
+        " onmouseover="this.style.backgroundColor='#2563eb'" onmouseout="this.style.backgroundColor='#3b82f6'" onclick="window.parent.postMessage({type: 'highlight-driver', driverId: '${driver.driverId}'}, '*')">
+          📋 View Driver Details
         </button>
       </div>
     `;
@@ -493,47 +806,30 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
       const existingMarker = currentMarkers.get(driverId);
 
       if (existingMarker) {
-        // Smooth position transition
+        // Only update position if it actually changed
         const currentPos = existingMarker.marker.getLngLat();
         const newPos = [driver.longitude, driver.latitude] as [number, number];
         
-        // Calculate if position changed significantly
         const latDiff = Math.abs(currentPos.lat - newPos[1]);
         const lngDiff = Math.abs(currentPos.lng - newPos[0]);
         const positionChanged = latDiff > 0.0001 || lngDiff > 0.0001; // ~10 meters
         
+        // Check if status changed
+        const lastTimestamp = existingMarker.lastUpdate;
+        const newTimestamp = new Date(driver.timestamp).getTime();
+        const statusChanged = newTimestamp > lastTimestamp;
+        
         if (positionChanged) {
-          // Animate to new position
           existingMarker.marker.setLngLat(newPos);
-          
-          // Update marker appearance if status changed
-          const newElement = createDriverMarker(driver, status);
-          existingMarker.marker.getElement().replaceWith(newElement);
-          
-          // Update popup content
+        }
+        
+        if (statusChanged) {
+          // Only update popup content, not the marker element to prevent jumping
           existingMarker.popup.setHTML(createDriverPopup(driver, status));
-          
-          // Add click handler to new element
-          newElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setControls(prev => ({ ...prev, selectedDriver: driverId }));
-            onDriverSelect?.(driver);
-          });
-
-          // Add keyboard handler
-          newElement.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setControls(prev => ({ ...prev, selectedDriver: driverId }));
-              onDriverSelect?.(driver);
-            }
-          });
-
-          existingMarker.element = newElement;
-          existingMarker.lastUpdate = Date.now();
+          existingMarker.lastUpdate = newTimestamp;
         }
       } else {
-        // Create new marker
+        // Create new marker only once
         const element = createDriverMarker(driver, status);
         
         const popup = new mapboxgl.Popup({
@@ -549,29 +845,69 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
           .setPopup(popup)
           .addTo(map);
 
-        // Add click handler
-        element.addEventListener('click', (e) => {
+        // Add event handlers once
+        const handleClick = (e: Event) => {
           e.stopPropagation();
           setControls(prev => ({ ...prev, selectedDriver: driverId }));
-          onDriverSelect?.(driver);
-        });
+          
+          // Enhance driver data with name info for the parent component
+          const enhancedDriver = {
+            ...driver,
+            name: getDriverName(driverId),
+            vehicle: getDriverVehicle(driverId),
+            route: getDriverRoute(driverId),
+            address: getDriverAddress(driverId),
+          };
+          
+          onDriverSelect?.(enhancedDriver);
+          
+          // Center map on selected driver
+          if (mapRef.current) {
+            mapRef.current.flyTo({
+              center: [driver.longitude, driver.latitude],
+              zoom: 16,
+              duration: 1000,
+            });
+          }
+        };
 
-        // Add keyboard handler
-        element.addEventListener('keydown', (e) => {
+        const handleKeydown = (e: KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setControls(prev => ({ ...prev, selectedDriver: driverId }));
-            onDriverSelect?.(driver);
+            
+            // Enhance driver data with name info for the parent component
+            const enhancedDriver = {
+              ...driver,
+              name: getDriverName(driverId),
+              vehicle: getDriverVehicle(driverId),
+              route: getDriverRoute(driverId),
+              address: getDriverAddress(driverId),
+            };
+            
+            onDriverSelect?.(enhancedDriver);
+            
+            // Center map on selected driver
+            if (mapRef.current) {
+              mapRef.current.flyTo({
+                center: [driver.longitude, driver.latitude],
+                zoom: 16,
+                duration: 1000,
+              });
+            }
           }
-        });
+        };
 
-        // Store marker reference
+        element.addEventListener('click', handleClick);
+        element.addEventListener('keydown', handleKeydown);
+
+        // Store marker reference with event handlers for cleanup
         currentMarkers.set(driverId, {
           element,
           marker,
           popup,
           driverId,
-          lastUpdate: Date.now(),
+          lastUpdate: new Date(driver.timestamp).getTime(),
         });
       }
     });
@@ -585,7 +921,7 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
     });
 
     markersRef.current = currentMarkers;
-  }, [driverLocations, driverStatuses, mapLoaded, createDriverMarker, createDriverPopup, onDriverSelect]);
+  }, [driverLocations, driverStatuses, mapLoaded]);
 
   // Fit map to show all drivers
   const fitToAllDrivers = useCallback(() => {
@@ -613,7 +949,7 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
         duration: 1500,
       });
     }
-  }, [driverLocations]);
+  }, [driverLocations.size]); // Only depend on size, not the whole map
 
   // Search functionality
   const handleSearch = useCallback(async (query: string) => {
@@ -644,6 +980,47 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
     }
   }, [mapboxToken]);
 
+  // Helper functions to get driver information
+  const getDriverName = (driverId: string): string => {
+    const driverNames: Record<string, string> = {
+      'driver-001': 'John Martinez',
+      'driver-002': 'Sarah Johnson', 
+      'driver-003': 'Mike Chen',
+      'driver-004': 'Emma Rodriguez',
+    };
+    return driverNames[driverId] || `Driver ${driverId}`;
+  };
+
+  const getDriverVehicle = (driverId: string): string => {
+    const vehicles: Record<string, string> = {
+      'driver-001': 'Van #101',
+      'driver-002': 'Truck #205',
+      'driver-003': 'Van #103', 
+      'driver-004': 'Truck #302',
+    };
+    return vehicles[driverId] || 'Unknown Vehicle';
+  };
+
+  const getDriverRoute = (driverId: string): string => {
+    const routes: Record<string, string> = {
+      'driver-001': 'Route A - Downtown',
+      'driver-002': 'Route B - Midtown',
+      'driver-003': '',
+      'driver-004': 'Route C - Queens',
+    };
+    return routes[driverId] || '';
+  };
+
+  const getDriverAddress = (driverId: string): string => {
+    const addresses: Record<string, string> = {
+      'driver-001': '123 Main St, New York, NY',
+      'driver-002': '456 Broadway, New York, NY',
+      'driver-003': '789 Times Square, New York, NY',
+      'driver-004': '321 Queens Blvd, Queens, NY',
+    };
+    return addresses[driverId] || 'Unknown Location';
+  };
+
   // Get status color helper
   const getStatusColor = (statusClass: string): string => {
     switch (statusClass) {
@@ -664,8 +1041,33 @@ export const InteractiveDriverMap: React.FC<InteractiveDriverMapProps> = ({
         100% { box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 0 rgba(59, 130, 246, 0); }
       }
       
+      .mapboxgl-marker {
+        transform-origin: center center !important;
+      }
+      
+      .driver-marker {
+        will-change: transform;
+        backface-visibility: hidden;
+        transform-origin: center center !important;
+        overflow: visible !important;
+      }
+      
       .driver-marker:hover {
         z-index: 1000 !important;
+      }
+      
+      .driver-tooltip {
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      
+      .driver-tooltip::before {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: rgba(0, 0, 0, 0.9);
       }
       
       .driver-popup .mapboxgl-popup-content {

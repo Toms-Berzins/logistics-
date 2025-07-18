@@ -105,12 +105,15 @@ export const useDriverTracking = (options: TrackingOptions): UseDriverTrackingRe
     if (socketRef.current?.connected) return;
 
     const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       autoConnect: false,
       reconnection: autoReconnect,
       reconnectionAttempts: maxReconnectAttempts,
       reconnectionDelay: reconnectInterval,
       timeout: 10000,
+      forceNew: true,
+      upgrade: true,
+      rememberUpgrade: false,
     });
 
     // Connection events

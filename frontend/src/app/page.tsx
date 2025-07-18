@@ -352,6 +352,13 @@ function TrackingView({ drivers }: { drivers: Driver[] }) {
           <ClientOnly fallback={<MapLoadingState />}>
             {(() => {
               const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+              console.log('Page token check:', {
+                token: mapboxToken.substring(0, 20) + '...',
+                length: mapboxToken.length,
+                startsWithPk: mapboxToken.startsWith('pk.'),
+                parts: mapboxToken.split('.').length
+              });
+              
               const hasValidToken = mapboxToken && 
                 !mapboxToken.includes('demo-token') && 
                 !mapboxToken.startsWith('pk.eyJ1IjoiZGVtby') &&

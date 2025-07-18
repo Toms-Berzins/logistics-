@@ -33,7 +33,15 @@
       "Bash(timeout 15 npm run dev)",
       "Bash(taskkill:*)",
       "Bash(npm --prefix frontend run dev)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(go mod:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(ls:*)",
+      "Bash(go vet:*)",
+      "Bash(timeout:*)",
+      "Bash(docker network:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": []
   }
