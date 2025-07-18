@@ -96,7 +96,7 @@ const TouchMapControls: React.FC<TouchMapControlsProps> = ({
       
       {onToggle3D && (
         <Button
-          variant={show3D ? "default" : "outline"}
+          variant={show3D ? "primary" : "outline"}
           size="sm"
           onClick={onToggle3D}
           className="touch-target bg-white/90 backdrop-blur-sm"
@@ -109,7 +109,7 @@ const TouchMapControls: React.FC<TouchMapControlsProps> = ({
       
       {onToggleTraffic && (
         <Button
-          variant={showTraffic ? "default" : "outline"}
+          variant={showTraffic ? "primary" : "outline"}
           size="sm"
           onClick={onToggleTraffic}
           className="touch-target bg-white/90 backdrop-blur-sm"

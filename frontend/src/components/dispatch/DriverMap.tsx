@@ -51,7 +51,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, DriverMarker>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  // const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   // Driver tracking hook
   const {
@@ -59,7 +59,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
     connectionQuality,
     driverLocations,
     driverStatuses,
-    trackDriver,
+    // trackDriver,
     getNearbyDrivers,
     lastError,
   } = useDriverTracking({
@@ -340,18 +340,30 @@ const DriverMap: React.FC<DriverMapProps> = ({
         // Update existing marker
         existingMarker.marker.setLngLat([driver.longitude, driver.latitude]);
         
-        // Update marker appearance
+        // Update marker appearance - remove old marker and create new one with updated element
         const newElement = createDriverMarker(driver, status);
-        existingMarker.element.replaceWith(newElement);
-        existingMarker.element = newElement;
-        existingMarker.marker.setElement(newElement);
+        existingMarker.marker.remove();
         
-        // Update popup content
-        existingMarker.popup.setHTML(createDriverPopup(driver, status));
+        // Create new popup with updated content
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+        }).setHTML(createDriverPopup(driver, status));
+        
+        // Create new marker with updated element
+        const newMarker = new mapboxgl.Marker(newElement)
+          .setLngLat([driver.longitude, driver.latitude])
+          .setPopup(popup)
+          .addTo(map);
+        
+        // Update the stored marker reference
+        existingMarker.marker = newMarker;
+        existingMarker.element = newElement;
+        existingMarker.popup = popup;
         
         // Add click handler
         newElement.addEventListener('click', () => {
-          setSelectedDriver(driverId);
+          // setSelectedDriver(driverId);
           onDriverClick?.(driver);
         });
       } else {
@@ -371,7 +383,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
 
         // Add click handler
         element.addEventListener('click', () => {
-          setSelectedDriver(driverId);
+          // setSelectedDriver(driverId);
           onDriverClick?.(driver);
         });
 
@@ -472,7 +484,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
           <ConnectionStatus
             isConnected={isConnected}
             connectionQuality={connectionQuality}
-            lastError={lastError}
+            lastError={lastError ? { message: lastError.message, timestamp: new Date() } : undefined}
             showDetails={false}
           />
         </Card>

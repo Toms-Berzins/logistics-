@@ -22,6 +22,24 @@ export function useAccessibility() {
 
   const [isClient, setIsClient] = useState(false)
 
+  // Detect screen reader usage
+  const detectScreenReader = useCallback((): boolean => {
+    if (typeof window === 'undefined') return false
+    
+    // Check for common screen reader indicators
+    const indicators = [
+      navigator.userAgent.includes('JAWS'),
+      navigator.userAgent.includes('NVDA'),
+      navigator.userAgent.includes('SCREENREADER'),
+      // Check if any elements have screen reader specific attributes
+      document.querySelector('[aria-live]') !== null,
+      // Check for high contrast mode (often used with screen readers)
+      prefersHighContrast(),
+    ]
+
+    return indicators.some(Boolean)
+  }, [])
+
   // Detect client-side to avoid hydration issues
   useEffect(() => {
     setIsClient(true)
@@ -64,26 +82,7 @@ export function useAccessibility() {
         mediaQuery.removeEventListener('change', listener)
       })
     }
-  }, [isClient])
-
-  // Detect screen reader usage
-  const detectScreenReader = useCallback((): boolean => {
-    if (typeof window === 'undefined') return false
-    
-    // Check for common screen reader indicators
-    const indicators = [
-      navigator.userAgent.includes('JAWS'),
-      navigator.userAgent.includes('NVDA'),
-      navigator.userAgent.includes('DRAGON'),
-      navigator.userAgent.includes('VoiceOver'),
-      // Check for aria-live regions (indicating screen reader usage)
-      document.querySelector('[aria-live]') !== null,
-      // Check for high contrast mode (often used with screen readers)
-      prefersHighContrast(),
-    ]
-
-    return indicators.some(Boolean)
-  }, [])
+  }, [isClient, detectScreenReader])
 
   // Announce messages to screen readers
   const announce = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {

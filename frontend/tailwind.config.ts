@@ -177,7 +177,7 @@ const config: Config = {
   },
   plugins: [
     // Custom plugin for focus-visible styles
-    function({ addUtilities, theme }) {
+    function({ addUtilities, theme }: { addUtilities: any, theme: any }) {
       const newUtilities = {
         '.focus-ring': {
           '&:focus-visible': {

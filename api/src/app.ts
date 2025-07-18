@@ -79,6 +79,7 @@ server.listen(PORT, async () => {
     await testConnection();
     console.log('✅ Database connected successfully');
 
+    await redisClient.connect();
     await redisClient.ping();
     console.log('✅ Redis connected successfully');
 

@@ -1,6 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDriverTracking, LocationUpdate } from './useDriverTracking';
 
+// Extended Navigator types for mobile APIs
+interface NavigatorConnection {
+  type?: string;
+  downlink?: number;
+  effectiveType?: '2g' | '3g' | '4g' | 'slow-2g';
+  rtt?: number;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+}
+
+interface ExtendedNavigator extends Navigator {
+  connection?: NavigatorConnection;
+  mozConnection?: NavigatorConnection;
+  webkitConnection?: NavigatorConnection;
+  getBattery?: () => Promise<{
+    level: number;
+    charging: boolean;
+    chargingTime: number;
+    dischargingTime: number;
+    addEventListener: (type: string, listener: () => void) => void;
+    removeEventListener: (type: string, listener: () => void) => void;
+  }>;
+}
+
 export interface MobileTrackingOptions {
   companyId: string;
   driverId: string;
@@ -85,7 +109,7 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
     batchTimeoutMs = 10000,
     maxBatchSize = 20,
     adaptToBandwidth = true,
-    lowBandwidthThreshold = 50, // 50 KB/s
+    // lowBandwidthThreshold = 50, // 50 KB/s
     enableOfflineQueue = true,
     maxOfflineUpdates = 100,
     enableBatteryOptimization = true,
@@ -93,7 +117,7 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
     enableMovementDetection = true,
     movementThreshold = 10, // 10 meters
     staticUpdateInterval = 30000, // 30 seconds
-    movingUpdateInterval = 5000, // 5 seconds
+    // movingUpdateInterval = 5000, // 5 seconds
   } = options;
 
   // State
@@ -121,12 +145,12 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
 
   // Driver tracking hook with batching enabled
   const {
-    isConnected,
-    connectionQuality,
+    // isConnected,
+    // connectionQuality,
     batchUpdateLocations,
     enableBatching,
     disableBatching,
-    isBatchingEnabled,
+    // isBatchingEnabled,
   } = useDriverTracking({
     companyId,
     userType: 'driver',
@@ -138,9 +162,9 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
   // Network monitoring
   useEffect(() => {
     const updateNetworkInfo = () => {
-      const connection = (navigator as any).connection || 
-                        (navigator as any).mozConnection || 
-                        (navigator as any).webkitConnection;
+      const connection = (navigator as ExtendedNavigator).connection || 
+                        (navigator as ExtendedNavigator).mozConnection || 
+                        (navigator as ExtendedNavigator).webkitConnection;
       
       setNetworkInfo({
         isOnline: navigator.onLine,
@@ -167,16 +191,16 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const connection = (navigator as any).connection;
+    const connection = (navigator as ExtendedNavigator).connection;
     if (connection) {
-      connection.addEventListener('change', updateNetworkInfo);
+      connection.addEventListener?.('change', updateNetworkInfo);
     }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       if (connection) {
-        connection.removeEventListener('change', updateNetworkInfo);
+        connection.removeEventListener?.('change', updateNetworkInfo);
       }
     };
   }, [enableOfflineQueue]);
@@ -186,7 +210,8 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
     const updateBatteryInfo = async () => {
       if ('getBattery' in navigator) {
         try {
-          const battery = await (navigator as any).getBattery();
+          const battery = await (navigator as ExtendedNavigator).getBattery?.();
+          if (!battery) return;
           
           const updateBatteryState = () => {
             setBatteryInfo({
@@ -249,7 +274,7 @@ export const useMobileTracking = (options: MobileTrackingOptions): UseMobileTrac
   const getAdaptiveBatchSize = useCallback((): number => {
     if (!adaptToBandwidth) return batchSize;
 
-    const connection = (navigator as any).connection;
+    const connection = (navigator as ExtendedNavigator).connection;
     if (!connection) return batchSize;
 
     // Adjust batch size based on connection quality

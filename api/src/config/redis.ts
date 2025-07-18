@@ -17,6 +17,4 @@ redisClient.on('ready', () => {
   console.log('✅ Redis client ready');
 });
 
-redisClient.connect();
-
 export { redisClient };

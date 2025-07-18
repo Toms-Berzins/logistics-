@@ -35,7 +35,7 @@ export class SocketServer {
     this.setupRedisAdapter();
 
     // Initialize services
-    const locationCache = new DriverLocationCache(redisClient);
+    const locationCache = new DriverLocationCache();
     this.driverTrackingService = new DriverTrackingService(locationCache);
     this.locationHandler = new LocationHandler(this.io, this.driverTrackingService);
 

@@ -213,7 +213,7 @@ export const useDriverTracking = (options: TrackingOptions): UseDriverTrackingRe
       data.drivers.forEach(driver => updateDriverLocation(driver));
     });
 
-    socket.on('error', (error: any) => {
+    socket.on('error', (error: Error | { message?: string }) => {
       console.error('Socket error:', error);
       setLastError(new Error(error.message || 'Socket error occurred'));
     });
@@ -221,7 +221,7 @@ export const useDriverTracking = (options: TrackingOptions): UseDriverTrackingRe
     // Ping/pong for connection quality monitoring
     socket.on('pong', () => {
       const now = Date.now();
-      const pingTime = now - (socket as any).lastPingTime;
+      const pingTime = now - ((socket as Socket & { lastPingTime?: number }).lastPingTime || 0);
       
       if (pingTime < 100) {
         setConnectionQuality('excellent');
@@ -286,7 +286,7 @@ export const useDriverTracking = (options: TrackingOptions): UseDriverTrackingRe
           
           // Keep only recent locations in buffer
           smoothingBufferRef.current = smoothingBufferRef.current
-            .filter(loc => new Date(location.timestamp).getTime() - new Date(loc.timestamp).getTime() < 30000)
+            .filter(loc => new Date(location.timestamp).getTime() - new Date(loc.timestamp || 0).getTime() < 30000)
             .slice(-5); // Keep last 5 locations
           
           // Average the locations for smoothing
@@ -446,7 +446,7 @@ export const useDriverTracking = (options: TrackingOptions): UseDriverTrackingRe
 
     const interval = setInterval(() => {
       if (socketRef.current?.connected) {
-        (socketRef.current as any).lastPingTime = Date.now();
+        (socketRef.current as Socket & { lastPingTime?: number }).lastPingTime = Date.now();
         socketRef.current.emit('ping');
       }
     }, 5000); // Ping every 5 seconds

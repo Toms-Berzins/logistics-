@@ -1,16 +1,16 @@
-import { RedisClient } from '../redis/RedisClient';
+import { redisClient } from '../../config/redis';
 import { IDriverLocation, ProximityQuery } from '../../types/spatial.types';
 import { performance } from 'perf_hooks';
 
 export class DriverLocationCache {
-  private redis: RedisClient;
+  private redis: typeof redisClient;
   private readonly LOCATION_TTL = 60; // 60 seconds
   private readonly GEOSPATIAL_KEY_PREFIX = 'drivers:location:';
   private readonly DRIVER_DATA_KEY_PREFIX = 'driver:data:';
   private readonly ZONE_DRIVERS_KEY_PREFIX = 'zone:drivers:';
   private readonly PERFORMANCE_KEY = 'location:performance';
 
-  constructor(redisClient: RedisClient) {
+  constructor() {
     this.redis = redisClient;
   }
 
@@ -21,12 +21,12 @@ export class DriverLocationCache {
     const startTime = performance.now();
 
     try {
-      const pipeline = this.redis.pipeline();
+      const pipeline = this.redis.multi();
       const { driverId, companyId, location, metadata, isOnline, lastSeen, currentZoneId, status } = driverLocation;
 
       // Store in geospatial index for proximity queries
       const geoKey = `${this.GEOSPATIAL_KEY_PREFIX}${companyId}`;
-      pipeline.geoadd(geoKey, location.longitude, location.latitude, driverId);
+      pipeline.geoAdd(geoKey, { member: driverId, longitude: location.longitude, latitude: location.latitude });
       pipeline.expire(geoKey, this.LOCATION_TTL);
 
       // Store detailed driver data
@@ -52,24 +52,24 @@ export class DriverLocationCache {
         status
       };
 
-      pipeline.hmset(driverDataKey, driverData);
+      pipeline.hSet(driverDataKey, driverData);
       pipeline.expire(driverDataKey, this.LOCATION_TTL);
 
       // Update zone membership if driver is in a zone
       if (currentZoneId) {
         const zoneDriversKey = `${this.ZONE_DRIVERS_KEY_PREFIX}${currentZoneId}`;
-        pipeline.sadd(zoneDriversKey, driverId);
+        pipeline.sAdd(zoneDriversKey, driverId);
         pipeline.expire(zoneDriversKey, this.LOCATION_TTL);
       }
 
       // Track performance metrics
       const processingTime = performance.now() - startTime;
-      pipeline.lpush(this.PERFORMANCE_KEY, JSON.stringify({
+      pipeline.lPush(this.PERFORMANCE_KEY, JSON.stringify({
         type: 'location_update',
         processingTime,
         timestamp: new Date().toISOString()
       }));
-      pipeline.ltrim(this.PERFORMANCE_KEY, 0, 999); // Keep last 1000 entries
+      pipeline.lTrim(this.PERFORMANCE_KEY, 0, 999); // Keep last 1000 entries
 
       await pipeline.exec();
 
@@ -85,7 +85,7 @@ export class DriverLocationCache {
   async getDriverLocation(driverId: string): Promise<IDriverLocation | null> {
     try {
       const driverDataKey = `${this.DRIVER_DATA_KEY_PREFIX}${driverId}`;
-      const driverData = await this.redis.hgetall(driverDataKey);
+      const driverData = await this.redis.hGetAll(driverDataKey);
 
       if (!driverData || !driverData.driverId) {
         return null;
@@ -131,17 +131,11 @@ export class DriverLocationCache {
       const { center, radiusMeters, limit = 50, unit = 'm' } = query;
 
       // Use GEORADIUS to find nearby drivers
-      const nearbyDriverIds = await this.redis.georadius(
+      const nearbyDriverIds = await this.redis.geoRadius(
         geoKey,
-        center.longitude,
-        center.latitude,
+        { longitude: center.longitude, latitude: center.latitude },
         radiusMeters,
-        unit,
-        'WITHDIST',
-        'WITHCOORD',
-        'ASC',
-        'COUNT',
-        limit
+        unit
       );
 
       if (!nearbyDriverIds || nearbyDriverIds.length === 0) {
@@ -149,14 +143,14 @@ export class DriverLocationCache {
       }
 
       // Get detailed information for each nearby driver
-      const pipeline = this.redis.pipeline();
+      const pipeline = this.redis.multi();
       const driverIds: string[] = [];
 
       for (const item of nearbyDriverIds) {
         if (Array.isArray(item) && item.length >= 1) {
           const driverId = item[0];
           driverIds.push(driverId);
-          pipeline.hgetall(`${this.DRIVER_DATA_KEY_PREFIX}${driverId}`);
+          pipeline.hGetAll(`${this.DRIVER_DATA_KEY_PREFIX}${driverId}`);
         }
       }
 
@@ -165,8 +159,8 @@ export class DriverLocationCache {
 
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        if (result && result[1]) {
-          const driverData = result[1] as Record<string, string>;
+        if (result && Array.isArray(result) && result[1]) {
+          const driverData = result[1] as unknown as Record<string, string>;
           // const _nearbyData = nearbyDriverIds[i] as unknown[];
 
           if (driverData.driverId) {
@@ -212,7 +206,7 @@ export class DriverLocationCache {
   async getDriversInZone(zoneId: string): Promise<string[]> {
     try {
       const zoneDriversKey = `${this.ZONE_DRIVERS_KEY_PREFIX}${zoneId}`;
-      const driverIds = await this.redis.smembers(zoneDriversKey);
+      const driverIds = await this.redis.sMembers(zoneDriversKey);
       return driverIds;
     } catch (error) {
       console.error(`Error getting drivers in zone: ${error}`);
@@ -225,11 +219,11 @@ export class DriverLocationCache {
    */
   async removeDriver(driverId: string, companyId: string): Promise<void> {
     try {
-      const pipeline = this.redis.pipeline();
+      const pipeline = this.redis.multi();
 
       // Remove from geospatial index
       const geoKey = `${this.GEOSPATIAL_KEY_PREFIX}${companyId}`;
-      pipeline.zrem(geoKey, driverId);
+      pipeline.zRem(geoKey, driverId);
 
       // Remove driver data
       const driverDataKey = `${this.DRIVER_DATA_KEY_PREFIX}${driverId}`;
@@ -238,7 +232,7 @@ export class DriverLocationCache {
       // Remove from all zone memberships
       const keys = await this.redis.keys(`${this.ZONE_DRIVERS_KEY_PREFIX}*`);
       for (const key of keys) {
-        pipeline.srem(key, driverId);
+        pipeline.sRem(key, driverId);
       }
 
       await pipeline.exec();
@@ -253,8 +247,8 @@ export class DriverLocationCache {
    */
   async getPerformanceMetrics(): Promise<unknown[]> {
     try {
-      const metrics = await this.redis.lrange(this.PERFORMANCE_KEY, 0, 99);
-      return metrics.map(metric => JSON.parse(metric));
+      const metrics = await this.redis.lRange(this.PERFORMANCE_KEY, 0, 99);
+      return metrics.map((metric: string) => JSON.parse(metric));
     } catch (error) {
       console.error(`Error getting performance metrics: ${error}`);
       return [];

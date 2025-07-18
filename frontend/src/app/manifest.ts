@@ -56,9 +56,6 @@ export default function manifest(): MetadataRoute.Manifest {
     launch_handler: {
       client_mode: 'navigate-existing'
     },
-    edge_side_panel: {
-      preferred_width: 400
-    },
     share_target: {
       action: '/share-target/',
       method: 'POST',

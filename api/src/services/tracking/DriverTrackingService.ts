@@ -22,7 +22,7 @@ export class DriverTrackingService extends EventEmitter {
 
     try {
       // Get previous location for distance/speed calculations
-      const previousLocation = await this.locationCache.getDriverLocation(driverId);
+      const previousLocation = (await this.locationCache.getDriverLocation(driverId)) || undefined;
 
       // Calculate distance traveled and time elapsed
       const distanceTraveled = previousLocation ?
@@ -37,7 +37,7 @@ export class DriverTrackingService extends EventEmitter {
       }
 
       // Detect current zone using PostGIS
-      const currentZoneId = await this.detectCurrentZone(location, companyId);
+      const currentZoneId = (await this.detectCurrentZone(location, companyId)) || undefined;
 
       // Check for geofence events
       const geofenceEvents = await this.checkGeofenceEvents(
@@ -96,7 +96,8 @@ export class DriverTrackingService extends EventEmitter {
 
     } catch (error) {
       console.error(`Error updating location for driver ${driverId}:`, error);
-      this.emit('error', { driverId, error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.emit('error', { driverId, error: errorMessage });
       throw error;
     }
   }
