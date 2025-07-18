@@ -254,6 +254,28 @@ export const semanticColors = {
     medium: colors.warning[500],
     low: colors.success[500],
   },
+  // AI prediction colors for route overlays
+  prediction: {
+    high: '#10b981', // emerald-400 for high confidence
+    medium: '#fbbf24', // amber-300 for medium confidence  
+    low: '#fda4af', // rose-200 for low confidence
+    predictiveBlue: '#3b82f6', // predictive-blue-500
+  },
+  // Traffic heat map gradient
+  trafficHeat: {
+    low: '#22c55e',
+    moderate: '#eab308',
+    heavy: '#f97316',
+    severe: '#ef4444',
+  },
+  // Driver state indicators
+  driverStates: {
+    availablePulse: '#10b981',
+    busySolid: '#f59e0b',
+    enRoutePurple: '#8b5cf6',
+    returningBlue: '#3b82f6',
+    offlineRed: '#ef4444',
+  },
 } as const
 
 // Accessibility tokens

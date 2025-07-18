@@ -3,8 +3,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useDriverTracking, DriverLocation, DriverStatus } from '../../hooks/useDriverTracking';
+import { useAIRoutePrediction, RoutePrediction } from '../../hooks/useAIRoutePrediction';
 import { Card, Button } from '../ui';
 import ConnectionStatus from '../realtime/ConnectionStatus';
+import PredictiveOverlay from '../map/PredictiveOverlay';
+import SmartCluster from '../map/SmartCluster';
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -20,8 +23,13 @@ interface DriverMapProps {
   width?: string;
   showTraffic?: boolean;
   show3D?: boolean;
+  showPredictions?: boolean;
+  showHeatMap?: boolean;
+  useSmartClustering?: boolean;
   onDriverClick?: (driver: DriverLocation) => void;
   onMapClick?: (coordinates: [number, number]) => void;
+  onPredictionClick?: (prediction: RoutePrediction) => void;
+  onClusterClick?: (driverIds: string[], bounds: mapboxgl.LngLatBounds) => void;
   className?: string;
 }
 
@@ -43,14 +51,21 @@ const DriverMap: React.FC<DriverMapProps> = ({
   width = '100%',
   showTraffic = false,
   show3D = false,
+  showPredictions = true,
+  showHeatMap = true,
+  useSmartClustering = true,
   onDriverClick,
   onMapClick,
+  onPredictionClick,
+  onClusterClick,
   className = '',
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, DriverMarker>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<string | null>(null);
+  const [currentZoom, setCurrentZoom] = useState(initialZoom);
   // const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   // Driver tracking hook
@@ -68,6 +83,22 @@ const DriverMap: React.FC<DriverMapProps> = ({
     userId,
     autoReconnect: true,
     locationSmoothingEnabled: true,
+  });
+
+  // AI route prediction hook
+  const {
+    predictions,
+    trafficData,
+    isLoading: isPredictionLoading,
+    error: predictionError,
+    generatePredictions,
+    generateTrafficData,
+    clearPredictions,
+    getBestPrediction,
+  } = useAIRoutePrediction({
+    enabled: showPredictions,
+    updateInterval: 30000,
+    confidenceThreshold: 0.6,
   });
 
   // Initialize Mapbox
@@ -173,6 +204,10 @@ const DriverMap: React.FC<DriverMapProps> = ({
     map.on('click', (e) => {
       const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
       onMapClick?.(coordinates);
+    });
+
+    map.on('zoom', () => {
+      setCurrentZoom(map.getZoom());
     });
 
     map.on('error', (e) => {
@@ -324,9 +359,9 @@ const DriverMap: React.FC<DriverMapProps> = ({
     `;
   }, []);
 
-  // Update driver markers when locations change
+  // Update driver markers when locations change (only when not using smart clustering)
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
+    if (!mapRef.current || !mapLoaded || useSmartClustering) return;
 
     const map = mapRef.current;
     const currentMarkers = markersRef.current;
@@ -406,7 +441,15 @@ const DriverMap: React.FC<DriverMapProps> = ({
     });
 
     markersRef.current = currentMarkers;
-  }, [driverLocations, driverStatuses, mapLoaded, createDriverMarker, createDriverPopup, onDriverClick]);
+  }, [driverLocations, driverStatuses, mapLoaded, useSmartClustering, createDriverMarker, createDriverPopup, onDriverClick]);
+
+  // Clear individual markers when switching to smart clustering
+  useEffect(() => {
+    if (useSmartClustering) {
+      markersRef.current.forEach(marker => marker.marker.remove());
+      markersRef.current.clear();
+    }
+  }, [useSmartClustering]);
 
   // Auto-fit map to show all drivers
   const fitToDrivers = useCallback(() => {
@@ -452,6 +495,40 @@ const DriverMap: React.FC<DriverMapProps> = ({
     }
   }, [getNearbyDrivers]);
 
+  // Handle prediction generation
+  const handleGeneratePredictions = useCallback(async () => {
+    if (!mapRef.current) return;
+
+    const center = mapRef.current.getCenter();
+    const bounds = mapRef.current.getBounds();
+    
+    if (!bounds) return;
+    
+    // Generate predictions for current view
+    await generatePredictions([center.lng, center.lat], [center.lng + 0.01, center.lat + 0.01]);
+    
+    // Generate traffic data for current bounds
+    generateTrafficData([
+      [bounds.getWest(), bounds.getSouth()],
+      [bounds.getEast(), bounds.getNorth()]
+    ]);
+  }, [generatePredictions, generateTrafficData]);
+
+  // Handle prediction click
+  const handlePredictionClick = useCallback((prediction: RoutePrediction) => {
+    setSelectedPrediction(prediction.id);
+    onPredictionClick?.(prediction);
+  }, [onPredictionClick]);
+
+  // Generate initial predictions when map loads
+  useEffect(() => {
+    if (mapLoaded && showPredictions) {
+      setTimeout(() => {
+        handleGeneratePredictions();
+      }, 1000); // Delay to ensure map is ready
+    }
+  }, [mapLoaded, showPredictions, handleGeneratePredictions]);
+
   // Add CSS animations
   useEffect(() => {
     const style = document.createElement('style');
@@ -478,6 +555,31 @@ const DriverMap: React.FC<DriverMapProps> = ({
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
       
+      {/* AI Predictive Overlay */}
+      {mapLoaded && (showPredictions || showHeatMap) && (
+        <PredictiveOverlay
+          map={mapRef.current}
+          predictions={predictions}
+          trafficData={trafficData}
+          showHeatMap={showHeatMap}
+          showPredictions={showPredictions}
+          selectedPrediction={selectedPrediction}
+          onPredictionClick={handlePredictionClick}
+        />
+      )}
+
+      {/* Smart Driver Clustering */}
+      {mapLoaded && useSmartClustering && (
+        <SmartCluster
+          map={mapRef.current}
+          driverLocations={driverLocations}
+          driverStatuses={driverStatuses}
+          zoom={currentZoom}
+          onClusterClick={onClusterClick}
+          onDriverClick={onDriverClick}
+        />
+      )}
+      
       {/* Connection Status */}
       <div className="absolute top-4 left-4 z-10">
         <Card padding="sm" className="bg-white/95 backdrop-blur-sm">
@@ -490,7 +592,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
         </Card>
       </div>
       
-      {/* Driver Count */}
+      {/* Driver Count & AI Status */}
       <div className="absolute top-4 right-20 z-10">
         <Card padding="sm" className="bg-white/95 backdrop-blur-sm">
           <div className="flex flex-col gap-1">
@@ -500,6 +602,12 @@ const DriverMap: React.FC<DriverMapProps> = ({
             <div className="text-xs text-neutral-500">
               Online: {Array.from(driverStatuses.values()).filter(s => s.isOnline).length}
             </div>
+            {showPredictions && (
+              <div className="text-xs text-blue-600 flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${isPredictionLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+                AI: {predictions.length} predictions
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -530,6 +638,30 @@ const DriverMap: React.FC<DriverMapProps> = ({
             >
               Find Nearby
             </Button>
+            {showPredictions && (
+              <Button
+                onClick={handleGeneratePredictions}
+                variant="outline"
+                size="sm"
+                disabled={isPredictionLoading}
+                className="text-blue-600 hover:bg-blue-50"
+              >
+                {isPredictionLoading ? 'Generating...' : 'AI Predictions'}
+              </Button>
+            )}
+            {predictions.length > 0 && (
+              <Button
+                onClick={() => {
+                  clearPredictions();
+                  setSelectedPrediction(null);
+                }}
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+              >
+                Clear Predictions
+              </Button>
+            )}
           </div>
         </Card>
       </div>
