@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import ClientOnly from '@/components/ClientOnly';
+import InteractiveDriverMap from '@/components/tracking/InteractiveDriverMap';
+import DemoDriverMap from '@/components/tracking/DemoDriverMap';
 
 // Demo data for the logistics dashboard
 const DEMO_COMPANY_ID = 'demo-company-123';
@@ -320,32 +322,70 @@ function TrackingView({ drivers }: { drivers: Driver[] }) {
     <div className="px-4 py-6 sm:px-0">
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Driver Tracking Map</h3>
-          <p className="text-sm text-gray-600">Real-time driver locations and status</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Driver Tracking Map</h3>
+              <p className="text-sm text-gray-600">Real-time driver locations and status</p>
+            </div>
+            {(() => {
+              const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+              const hasValidToken = mapboxToken && 
+                !mapboxToken.includes('demo-token') && 
+                !mapboxToken.startsWith('pk.eyJ1IjoiZGVtby') &&
+                mapboxToken !== 'demo' &&
+                mapboxToken.startsWith('pk.') &&
+                mapboxToken.split('.').length === 3;
+              
+              if (!hasValidToken) {
+                return (
+                  <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span>Demo Mode</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
         </div>
         <div className="p-6">
           <ClientOnly fallback={<MapLoadingState />}>
-            <div className="bg-gray-100 h-96 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-4xl mb-4">🗺️</div>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  Interactive Driver Map
-                </h4>
-                <p className="text-gray-600 mb-4">
-                  Mapbox-powered real-time driver tracking would appear here
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p>Features available:</p>
-                  <ul className="mt-2 space-y-1">
-                    <li>• Real-time driver locations</li>
-                    <li>• Geofencing alerts</li>
-                    <li>• Route optimization</li>
-                    <li>• Traffic data integration</li>
-                    <li>• Socket.io live updates</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            {(() => {
+              const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+              const hasValidToken = mapboxToken && 
+                !mapboxToken.includes('demo-token') && 
+                !mapboxToken.startsWith('pk.eyJ1IjoiZGVtby') &&
+                mapboxToken !== 'demo' &&
+                mapboxToken.startsWith('pk.') &&
+                mapboxToken.split('.').length === 3;
+              
+              if (hasValidToken) {
+                return (
+                  <InteractiveDriverMap
+                    companyId={DEMO_COMPANY_ID}
+                    mapboxToken={mapboxToken}
+                    height="400px"
+                    showTraffic={true}
+                    showGeofences={false}
+                    onDriverSelect={(driver) => {
+                      console.log('Selected driver:', driver);
+                    }}
+                    className="rounded-lg shadow-sm"
+                  />
+                );
+              } else {
+                return (
+                  <DemoDriverMap
+                    companyId={DEMO_COMPANY_ID}
+                    height="400px"
+                    onDriverSelect={(driver) => {
+                      console.log('Selected demo driver:', driver);
+                    }}
+                    className="rounded-lg shadow-sm"
+                  />
+                );
+              }
+            })()}
           </ClientOnly>
 
           {/* Driver Status Cards */}
