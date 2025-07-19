@@ -295,6 +295,122 @@ export const accessibility = {
   },
 } as const
 
+// Pricing-specific design tokens
+export const pricingTokens = {
+  // Pricing tier colors and styling
+  tiers: {
+    starter: {
+      background: 'bg-slate-50',
+      border: 'border-slate-200',
+      text: 'text-slate-900',
+      accent: 'text-slate-600',
+      card: 'bg-white border-slate-200',
+    },
+    professional: {
+      background: 'bg-blue-50',
+      border: 'border-blue-600 border-2',
+      text: 'text-blue-900',
+      accent: 'text-blue-600',
+      highlight: 'bg-blue-600',
+      card: 'bg-blue-50 border-blue-600 border-2',
+      popular: true,
+    },
+    enterprise: {
+      background: 'bg-purple-50',
+      border: 'border-purple-200',
+      text: 'text-purple-900',
+      accent: 'text-purple-600',
+      card: 'bg-white border-purple-200',
+    },
+  },
+  
+  // Pricing card layout
+  card: {
+    width: 'w-80', // 320px
+    gap: 'gap-6', // 24px
+    maxWidth: 'max-w-6xl', // ~1200px
+    padding: 'p-8',
+    spacing: 'space-y-6',
+  },
+  
+  // Typography hierarchy for pricing
+  typography: {
+    planName: 'text-2xl font-bold',
+    price: 'text-4xl font-black',
+    features: 'text-sm',
+    description: 'text-base text-gray-600',
+    badge: 'text-xs font-medium',
+  },
+  
+  // Interactive states
+  interactions: {
+    hover: 'hover:shadow-lg hover:scale-105',
+    transition: 'transition-all duration-200 ease-out',
+    focus: 'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none',
+  },
+  
+  // Feature comparison icons
+  icons: {
+    included: 'text-green-500',
+    excluded: 'text-red-400',
+    size: 'w-5 h-5',
+  },
+  
+  // Badge styling
+  badges: {
+    popular: {
+      base: 'absolute -top-3 right-4 bg-blue-600 text-white',
+      size: 'px-3 py-1 text-xs font-medium',
+      shape: 'rounded-full',
+    },
+    current: {
+      base: 'absolute -top-3 right-4 bg-green-600 text-white',
+      size: 'px-3 py-1 text-xs font-medium',
+      shape: 'rounded-full',
+    },
+  },
+  
+  // Button variants for pricing
+  buttons: {
+    primary: {
+      base: 'bg-blue-600 hover:bg-blue-700 text-white',
+      size: 'w-full px-6 py-3 text-sm font-medium',
+      shape: 'rounded-lg',
+      focus: 'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+    },
+    secondary: {
+      base: 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300',
+      size: 'w-full px-6 py-3 text-sm font-medium',
+      shape: 'rounded-lg',
+      focus: 'focus:ring-2 focus:ring-gray-500 focus:ring-offset-2',
+    },
+  },
+  
+  // Loading skeleton styles
+  loading: {
+    skeleton: 'bg-gray-200 animate-pulse rounded',
+    price: 'h-12 w-24 bg-gray-200 animate-pulse rounded',
+    feature: 'h-4 w-full bg-gray-200 animate-pulse rounded',
+  },
+  
+  // Responsive grid system
+  responsive: {
+    grid: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6',
+    container: 'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8',
+    section: 'py-12 sm:py-16 lg:py-20',
+  },
+} as const;
+
+// Billing toggle design tokens
+export const billingToggleTokens = {
+  container: 'relative bg-gray-200 p-1 rounded-full',
+  button: 'relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-200',
+  activeButton: 'text-blue-600',
+  inactiveButton: 'text-gray-500',
+  indicator: 'absolute top-1 left-1 bg-white shadow-sm rounded-full transition-transform duration-200 ease-out',
+  indicatorSize: 'h-8',
+} as const;
+
 // Export all tokens as a single object for convenience
 export const tokens = {
   colors,
@@ -307,6 +423,8 @@ export const tokens = {
   zIndex,
   semanticColors,
   accessibility,
+  pricing: pricingTokens,
+  billingToggle: billingToggleTokens,
 } as const
 
 // Type definitions for TypeScript support

@@ -50,7 +50,8 @@
       "Bash(docker exec:*)",
       "Bash(cmd /c:*)",
       "Bash(powershell:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

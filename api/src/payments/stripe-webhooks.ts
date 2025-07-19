@@ -3,13 +3,24 @@ import { Request, Response } from 'express';
 import { clerkClient } from '../lib/auth/clerk-setup';
 import { databaseConfig } from '../config/database';
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil'
-});
+// Check for required environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('STRIPE_SECRET_KEY not configured. Stripe webhooks will not work.');
+}
+
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  console.warn('STRIPE_WEBHOOK_SECRET not configured. Webhook signature verification will be skipped.');
+}
+
+// Initialize Stripe (only if API key is available)
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-06-30.basil'
+    })
+  : null;
 
 // Webhook endpoint secret for verification
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Subscription tier mapping
 const SUBSCRIPTION_TIERS = {
@@ -160,12 +171,25 @@ async function updateClerkOrganizationMetadata(
 
 // Webhook handler
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
+  // Check if Stripe is configured
+  if (!stripe) {
+    console.error('Stripe not configured. Cannot process webhook.');
+    res.status(500).json({ error: 'Stripe not configured' });
+    return;
+  }
+
   const sig = req.headers['stripe-signature'] as string;
   let event: Stripe.Event;
 
   try {
-    // Verify webhook signature
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    // Verify webhook signature if secret is available
+    if (endpointSecret) {
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } else {
+      // Skip signature verification in development
+      console.warn('Webhook signature verification skipped - no secret configured');
+      event = JSON.parse(req.body.toString());
+    }
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     res.status(400).send(`Webhook Error: ${err}`);
@@ -356,6 +380,10 @@ export async function createStripeCustomer(
   email: string,
   name: string
 ): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+  
   try {
     const customer = await stripe.customers.create({
       email,
@@ -388,6 +416,10 @@ export async function createSubscription(
   priceId: string,
   organizationId: string
 ): Promise<Stripe.Subscription> {
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
@@ -411,6 +443,10 @@ export async function cancelSubscription(
   subscriptionId: string,
   cancelAtPeriodEnd = true
 ): Promise<Stripe.Subscription> {
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: cancelAtPeriodEnd

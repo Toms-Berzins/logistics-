@@ -21,7 +21,7 @@ export default function BillingPage() {
   const { isLoaded, isSignedIn } = useUser();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [subscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export default function BillingPage() {
             <div className="text-center py-8">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">No Active Subscription</h2>
               <p className="text-gray-600 mb-6">
-                You don't have an active subscription. Choose a plan to get started with LogiTrack.
+                You don&apos;t have an active subscription. Choose a plan to get started with LogiTrack.
               </p>
               <a
                 href="/pricing"
