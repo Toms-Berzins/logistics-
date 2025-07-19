@@ -15,10 +15,12 @@ import { healthRoutes } from './routes/health';
 import { trackingRoutes } from './routes/drivers/tracking';
 import mappingRoutes from './routes/mapping';
 import { authRoutes } from './routes/auth';
+import { subscriptionRoutes } from './routes/subscriptions';
 import { handleStripeWebhook } from './payments/stripe-webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
+import { SubscriptionNotificationService } from './services/SubscriptionNotificationService';
 
 dotenv.config();
 
@@ -87,11 +89,15 @@ app.use(session({
   }
 }));
 
+// Initialize subscription notification service
+const subscriptionNotificationService = new SubscriptionNotificationService(io);
+
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/drivers', trackingRoutes);
 app.use('/api/mapping', mappingRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Socket.io
 socketHandler(io);
@@ -121,4 +127,4 @@ server.listen(PORT, async () => {
   }
 });
 
-export { app, io };
+export { app, io, subscriptionNotificationService };

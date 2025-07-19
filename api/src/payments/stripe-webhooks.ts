@@ -2,6 +2,8 @@ import Stripe from 'stripe';
 import { Request, Response } from 'express';
 import { clerkClient } from '../lib/auth/clerk-setup';
 import { databaseConfig } from '../config/database';
+import { UsageTrackingService } from '../services/UsageTrackingService';
+import { redisClient } from '../config/redis';
 
 // Check for required environment variables
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -21,6 +23,9 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 // Webhook endpoint secret for verification
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+// Initialize usage tracking service
+const usageTrackingService = new UsageTrackingService();
 
 // Subscription tier mapping
 const SUBSCRIPTION_TIERS = {
@@ -63,7 +68,69 @@ const TIER_FEATURES = {
   ]
 } as const;
 
-// Database queries
+// Helper functions for subscription management
+function getTierLimits(tier: string) {
+  const limits = {
+    starter: {
+      maxDrivers: 5,
+      maxRoutes: 50,
+      maxDeliveries: 500,
+      maxGeofences: 10,
+      apiCallsPerMonth: 10000,
+      storageGB: 1,
+      supportLevel: 'basic'
+    },
+    professional: {
+      maxDrivers: 25,
+      maxRoutes: 500,
+      maxDeliveries: 5000,
+      maxGeofences: 100,
+      apiCallsPerMonth: 100000,
+      storageGB: 10,
+      supportLevel: 'priority'
+    },
+    enterprise: {
+      maxDrivers: -1,
+      maxRoutes: -1,
+      maxDeliveries: -1,
+      maxGeofences: -1,
+      apiCallsPerMonth: -1,
+      storageGB: 100,
+      supportLevel: 'dedicated'
+    }
+  };
+  return limits[tier as keyof typeof limits] || limits.starter;
+}
+
+function getInitialUsage() {
+  return {
+    drivers: 0,
+    routes: 0,
+    deliveries: 0,
+    geofences: 0,
+    apiCalls: 0,
+    storageUsed: 0,
+    lastUpdated: new Date()
+  };
+}
+
+function generateSubscriptionId(): string {
+  return 'sub_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
+
+async function cacheSubscriptionStatus(organizationId: string, status: string, tier: string): Promise<void> {
+  try {
+    await redisClient.setEx(
+      `subscription:org:${organizationId}`,
+      300, // 5 minutes TTL
+      JSON.stringify({ status, tier, cachedAt: new Date().toISOString() })
+    );
+  } catch (error) {
+    console.error('Failed to cache subscription status:', error);
+  }
+}
+
+// Enhanced database queries with new subscription table support
 async function updateOrganizationSubscription(
   stripeCustomerId: string,
   subscriptionData: {
@@ -71,6 +138,7 @@ async function updateOrganizationSubscription(
     status: string;
     tier?: string;
     billingCycle?: string;
+    currentPeriodStart?: Date;
     currentPeriodEnd?: Date;
     cancelAtPeriodEnd?: boolean;
   }
@@ -90,42 +158,78 @@ async function updateOrganizationSubscription(
     }
 
     const organizationId = orgQuery.rows[0].id;
+    const tier = subscriptionData.tier || 'starter';
+    const features = TIER_FEATURES[tier as keyof typeof TIER_FEATURES] || TIER_FEATURES.starter;
 
-    // Update or insert subscription record
+    // Update the new subscriptions table
+    const subscriptionId = generateSubscriptionId();
     await client.query(`
-      INSERT INTO organization_subscriptions (
+      INSERT INTO subscriptions (
+        id,
         organization_id,
         stripe_customer_id,
         stripe_subscription_id,
         status,
         tier,
         billing_cycle,
+        current_period_start,
         current_period_end,
         cancel_at_period_end,
         features,
+        limits,
+        usage,
+        created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-      ON CONFLICT (organization_id) 
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      ON CONFLICT (stripe_subscription_id) 
       DO UPDATE SET
-        stripe_subscription_id = EXCLUDED.stripe_subscription_id,
         status = EXCLUDED.status,
         tier = EXCLUDED.tier,
         billing_cycle = EXCLUDED.billing_cycle,
+        current_period_start = EXCLUDED.current_period_start,
         current_period_end = EXCLUDED.current_period_end,
         cancel_at_period_end = EXCLUDED.cancel_at_period_end,
         features = EXCLUDED.features,
+        limits = EXCLUDED.limits,
         updated_at = NOW()
     `, [
+      subscriptionId,
       organizationId,
       stripeCustomerId,
       subscriptionData.subscriptionId || null,
       subscriptionData.status,
-      subscriptionData.tier || 'starter',
+      tier,
       subscriptionData.billingCycle || 'monthly',
+      subscriptionData.currentPeriodStart || null,
       subscriptionData.currentPeriodEnd || null,
       subscriptionData.cancelAtPeriodEnd || false,
-      JSON.stringify(TIER_FEATURES[subscriptionData.tier as keyof typeof TIER_FEATURES] || TIER_FEATURES.starter)
+      JSON.stringify(features),
+      JSON.stringify(getTierLimits(tier)),
+      JSON.stringify(getInitialUsage())
     ]);
+
+    // Also update organization for backward compatibility
+    await client.query(`
+      UPDATE organizations 
+      SET subscription_tier = $1, subscription_status = $2, updated_at = NOW()
+      WHERE id = $3
+    `, [tier, subscriptionData.status, organizationId]);
+
+    // Log subscription change for audit
+    await usageTrackingService.trackUsage(
+      organizationId,
+      subscriptionData.subscriptionId ? 'subscription_updated' : 'subscription_created',
+      {
+        stripeCustomerId,
+        subscriptionId: subscriptionData.subscriptionId,
+        tier,
+        status: subscriptionData.status,
+        billingCycle: subscriptionData.billingCycle
+      }
+    );
+
+    // Cache subscription status in Redis
+    await cacheSubscriptionStatus(organizationId, subscriptionData.status, tier);
 
     console.log(`Updated subscription for organization ${organizationId}: ${subscriptionData.status}`);
   } finally {
@@ -262,6 +366,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription): Pro
     status: subscription.status,
     tier,
     billingCycle,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
     currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     cancelAtPeriodEnd: (subscription as any).cancel_at_period_end
   });
@@ -271,6 +376,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription): Pro
     status: subscription.status,
     tier,
     billingCycle,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
     currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     cancelAtPeriodEnd: (subscription as any).cancel_at_period_end
   });
@@ -290,6 +396,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
     status: subscription.status,
     tier,
     billingCycle,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
     currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     cancelAtPeriodEnd: (subscription as any).cancel_at_period_end
   });
@@ -299,6 +406,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
     status: subscription.status,
     tier,
     billingCycle,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
     currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     cancelAtPeriodEnd: (subscription as any).cancel_at_period_end
   });
