@@ -55,11 +55,15 @@ export default function DashboardPage() {
               </p>
             </div>
             
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 cursor-pointer hover:bg-purple-100 transition-colors"
+                 onClick={() => router.push('/dashboard/analytics')}>
               <h3 className="font-semibold text-purple-900 mb-2">📊 Analytics</h3>
               <p className="text-purple-700 text-sm">
                 Performance metrics and operational insights
               </p>
+              <div className="mt-2 text-purple-600 text-xs font-medium">
+                Click to view KPI dashboard →
+              </div>
             </div>
           </div>
         </div>
