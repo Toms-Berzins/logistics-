@@ -18,9 +18,17 @@ dist/
 build/
 coverage/
 
-# Production
+# Environment files - NEVER COMMIT THESE
 .env
 .env.*
+.env.local
+.env.development
+.env.staging
+.env.production
+**/.env
+**/.env.*
+api/.env
+frontend/.env.local
 
 # OS files
 .DS_Store
@@ -55,6 +63,12 @@ coverage/
 # Ignore API build artifacts
 api/dist/
 api/coverage/
+
+# Ignore Go executable files and build artifacts
+*.exe
+api/go-spatial/*.exe
+api/go-spatial/go-spatial
+api/go-spatial/tests.test.exe
 
 # Ignore Next.js build artifacts
 src/.next/

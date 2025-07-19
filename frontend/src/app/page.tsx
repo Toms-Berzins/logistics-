@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 import ClientOnly from '@/components/ClientOnly';
 import InteractiveDriverMap from '@/components/tracking/InteractiveDriverMap';
 import DemoDriverMap from '@/components/tracking/DemoDriverMap';
@@ -284,27 +286,52 @@ function DashboardView({
 
           {/* Quick Actions */}
           <div className="mt-12">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="flex flex-wrap justify-center gap-4">
-              <button 
-                onClick={onStartTracking}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105"
-              >
-                🚚 Start Driver Tracking
-              </button>
-              <button 
-                onClick={onViewAnalytics}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors transform hover:scale-105"
-              >
-                📊 View Analytics
-              </button>
-              <button 
-                onClick={onManageZones}
-                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors transform hover:scale-105"
-              >
-                🗺️ Manage Zones
-              </button>
-            </div>
+            <SignedOut>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                  🔐 Authentication Required
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  Please sign in to access the full logistics dashboard and start tracking drivers.
+                </p>
+                <p className="text-sm text-blue-600">
+                  Sign up above to create your free account and get started immediately.
+                </p>
+              </div>
+            </SignedOut>
+            
+            <SignedIn>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="flex flex-wrap justify-center gap-4 mb-6">
+                <button 
+                  onClick={onStartTracking}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105"
+                >
+                  🚚 Start Driver Tracking
+                </button>
+                <button 
+                  onClick={onViewAnalytics}
+                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors transform hover:scale-105"
+                >
+                  📊 View Analytics
+                </button>
+                <button 
+                  onClick={onManageZones}
+                  className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors transform hover:scale-105"
+                >
+                  🗺️ Manage Zones
+                </button>
+              </div>
+              
+              <div className="mt-6">
+                <Link 
+                  href="/dashboard"
+                  className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Access Full Dashboard →
+                </Link>
+              </div>
+            </SignedIn>
           </div>
         </div>
       </div>
