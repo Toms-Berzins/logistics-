@@ -296,7 +296,10 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
     }
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
-    res.status(400).send(`Webhook Error: ${err}`);
+    res.status(400).json({ 
+      error: 'Webhook signature verification failed',
+      message: 'Invalid webhook signature' 
+    });
     return;
   }
 

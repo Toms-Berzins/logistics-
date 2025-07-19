@@ -254,7 +254,7 @@ export const MiniDonutChart: React.FC<MiniDonutChartProps> = ({
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={`${colorScheme.ring.replace('stroke-', 'stroke-')} transition-all duration-300 ease-out`}
+            className={`${colorScheme.ring} transition-all duration-300 ease-out`}
           />
         </svg>
         

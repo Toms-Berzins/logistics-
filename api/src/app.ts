@@ -49,9 +49,34 @@ const PORT = process.env.PORT || 3001;
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.'
+});
+
+// Webhook-specific rate limiting (more permissive for legitimate webhook traffic)
+const webhookLimiter = rateLimit({
+  windowMs: parseInt(process.env.WEBHOOK_RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
+  max: parseInt(process.env.WEBHOOK_RATE_LIMIT_MAX || '1000'), // Allow up to 1000 webhook requests per minute per IP
+  message: 'Too many webhook requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Custom key generator to also limit by webhook type
+  keyGenerator: (req) => {
+    const webhookType = req.headers['stripe-signature'] ? 'stripe' : 'unknown';
+    return `${req.ip}-${webhookType}`;
+  }
+});
+
+// Strict rate limiting for sensitive authentication routes
+const authLimiter = rateLimit({
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10'), // limit each IP to 10 auth requests per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip successful requests
+  skipSuccessfulRequests: true
 });
 
 // Middleware
@@ -72,7 +97,7 @@ app.use(cors({
   credentials: true
 }));
 // Stripe webhook endpoint needs raw body, so place before JSON middleware
-app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
+app.use('/api/webhooks/stripe', webhookLimiter, express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 // Cookie parser must come before session and CSRF
 app.use(cookieParser());
@@ -123,7 +148,7 @@ app.use('/api', (req, res, next) => {
 
 // Routes
 app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/drivers', trackingRoutes);
 app.use('/api/mapping', mappingRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);

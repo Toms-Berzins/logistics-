@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { csrfMiddleware, csrfTokenMiddleware, csrfTokenHandler, csrfErrorHandler } from '../middleware/csrf';
 
 // Test app setup
@@ -11,6 +12,16 @@ const createTestApp = () => {
   app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  
+  // Rate limiting for security
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+  app.use(limiter);
   
   // Simple in-memory session for testing
   app.use(session({
