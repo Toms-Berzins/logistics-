@@ -22,5 +22,6 @@
     }
   },
   "include": ["src/**/*"],
+  "files": ["src/types/session.d.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

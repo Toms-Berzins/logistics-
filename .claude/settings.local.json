@@ -54,7 +54,8 @@
       "Bash(npm test:*)",
       "Bash(node:*)",
       "Bash(copy .env.example .env)",
-      "Bash(del test-shutdown.js)"
+      "Bash(del test-shutdown.js)",
+      "Bash(ngrok http:*)"
     ],
     "deny": []
   }
