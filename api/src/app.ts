@@ -9,6 +9,10 @@ import session from 'express-session';
 import RedisStore from 'connect-redis';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 import { databaseConfig, testConnection } from './config/database';
 import { redisClient } from './config/redis';
@@ -24,7 +28,6 @@ import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
 import { SubscriptionNotificationService } from './services/SubscriptionNotificationService';
 
-dotenv.config();
 
 const app = express();
 const server = createServer(app);

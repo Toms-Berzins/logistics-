@@ -1,3 +1,4 @@
+/// <reference path="../types/session.d.ts" />
 import { Request, Response, NextFunction } from 'express';
 import csrf from 'csrf';
 import { setCSRFCookie, formatCSRFResponse, formatCSRFError } from '../utils/csrf';

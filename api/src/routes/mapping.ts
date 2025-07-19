@@ -312,7 +312,7 @@ router.post('/batch-geocode', async (req: AuthenticatedRequest, res: Response, n
     };
 
     // Validate required fields
-    if (batchGeocodingRequest.delayMs > 1000) {
+    if ((batchGeocodingRequest.delayMs ?? 100) > 1000) {
       return res.status(400).json({
         success: false,
         error: 'Maximum delayMs allowed is 1000 milliseconds'
