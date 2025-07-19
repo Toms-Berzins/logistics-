@@ -27,7 +27,7 @@ export class LocationService {
 
   constructor(driverId: string) {
     this.driverId = driverId;
-    this.baseUrl = 'http://localhost:3001'; // API base URL
+    this.baseUrl = 'http://192.168.18.2:3001'; // API base URL
     this.setupBackgroundTask();
   }
 

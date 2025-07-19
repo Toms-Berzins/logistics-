@@ -14,6 +14,7 @@ import { redisClient } from './config/redis';
 import { healthRoutes } from './routes/health';
 import { trackingRoutes } from './routes/drivers/tracking';
 import mappingRoutes from './routes/mapping';
+import { authRoutes } from './routes/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
@@ -24,7 +25,17 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:8081',
+      'http://localhost:8085',
+      'exp://localhost:8081',
+      'exp://localhost:8085',
+      'http://192.168.18.2:8081',
+      'http://192.168.18.2:8085',
+      'exp://192.168.18.2:8081',
+      'exp://192.168.18.2:8085'
+    ],
     methods: ['GET', 'POST']
   }
 });
@@ -42,7 +53,17 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:8081',
+    'http://localhost:8085',
+    'exp://localhost:8081',
+    'exp://localhost:8085',
+    'http://192.168.18.2:8081',
+    'http://192.168.18.2:8085',
+    'exp://192.168.18.2:8081',
+    'exp://192.168.18.2:8085'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -64,6 +85,7 @@ app.use(session({
 
 // Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/drivers', trackingRoutes);
 app.use('/api/mapping', mappingRoutes);
 

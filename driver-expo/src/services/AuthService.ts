@@ -27,7 +27,7 @@ export class AuthService {
   private tokenRefreshPromise: Promise<boolean> | null = null;
 
   constructor() {
-    this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+    this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.18.2:3001';
   }
 
   static getInstance(): AuthService {
@@ -44,6 +44,7 @@ export class AuthService {
     try {
       const startTime = Date.now();
       
+      // Production API call:
       const response = await fetch(`${this.baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -98,6 +99,7 @@ export class AuthService {
       );
     }
   }
+
 
   /**
    * Auto-login using stored credentials
@@ -182,6 +184,7 @@ export class AuthService {
         throw new Error('No refresh token available');
       }
 
+      // Production token refresh:
       const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -212,6 +215,8 @@ export class AuthService {
       } else {
         throw new Error(result.message || 'Token refresh failed');
       }
+      
+      return false;
     } catch (error) {
       console.error('Token refresh error:', error);
       return false;
@@ -345,6 +350,7 @@ export class AuthService {
 
   private async verifyToken(token: string): Promise<boolean> {
     try {
+      // Production verification:
       const response = await fetch(`${this.baseUrl}/api/auth/verify`, {
         method: 'GET',
         headers: {

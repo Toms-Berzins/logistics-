@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DriverService } from '../services/DriverService';
@@ -104,24 +106,89 @@ export default function ActiveJobScreen({ navigation, route }: ActiveJobScreenPr
     }
   };
 
-  const navigateToStop = (stop: DeliveryStop) => {
-    const address = encodeURIComponent(stop.address);
-    const url = `https://maps.google.com/maps?daddr=${address}`;
+  const navigateToStop = async (stop: DeliveryStop) => {
+    const [lat, lng] = stop.coordinates;
     
+    // Create multiple URL options for different map apps
+    const urls = {
+      apple: Platform.OS === 'ios' ? `http://maps.apple.com/?daddr=${lat},${lng}` : null,
+      google: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+      googleApp: `comgooglemaps://?daddr=${lat},${lng}`,
+      waze: `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`
+    };
+
     Alert.alert(
-      'Navigate',
-      `Open navigation to:\n${stop.customerName}\n${stop.address}`,
+      'Choose Navigation App',
+      `Navigate to:\n${stop.customerName}\n${stop.address}`,
       [
         { text: 'Cancel' },
+        ...(Platform.OS === 'ios' ? [{ 
+          text: 'Apple Maps', 
+          onPress: () => openMapsApp(urls.apple, 'Apple Maps')
+        }] : []),
         { 
-          text: 'Open Maps', 
-          onPress: () => {
-            // Would open external navigation app
-            console.log('Opening navigation to:', url);
-          }
+          text: 'Google Maps', 
+          onPress: () => openMapsApp(urls.googleApp, 'Google Maps', urls.google)
+        },
+        { 
+          text: 'Waze', 
+          onPress: () => openMapsApp(urls.waze, 'Waze')
         }
       ]
     );
+  };
+
+  const quickNavigate = async (stop: DeliveryStop) => {
+    const [lat, lng] = stop.coordinates;
+    
+    // Try Google Maps app first, then fallback to web
+    const googleAppUrl = `comgooglemaps://?daddr=${lat},${lng}`;
+    const googleWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    
+    try {
+      const canOpenApp = await Linking.canOpenURL(googleAppUrl);
+      if (canOpenApp) {
+        await Linking.openURL(googleAppUrl);
+      } else {
+        await Linking.openURL(googleWebUrl);
+      }
+    } catch (error) {
+      console.error('Error opening navigation:', error);
+      Alert.alert('Error', 'Failed to open navigation. Please try again.');
+    }
+  };
+
+  const openMapsApp = async (primaryUrl: string | null, appName: string, fallbackUrl?: string) => {
+    if (!primaryUrl) {
+      if (fallbackUrl) {
+        await openMapsApp(fallbackUrl, appName);
+      } else {
+        Alert.alert('Error', `${appName} is not available on this platform`);
+      }
+      return;
+    }
+
+    try {
+      const canOpen = await Linking.canOpenURL(primaryUrl);
+      if (canOpen) {
+        await Linking.openURL(primaryUrl);
+      } else {
+        // Try fallback URL (web version)
+        if (fallbackUrl) {
+          const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+          if (canOpenFallback) {
+            await Linking.openURL(fallbackUrl);
+          } else {
+            Alert.alert('Error', `Cannot open ${appName}. Please install the app or check your settings.`);
+          }
+        } else {
+          Alert.alert('Error', `${appName} is not installed on this device.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening maps app:', error);
+      Alert.alert('Error', `Failed to open ${appName}. Please try again.`);
+    }
   };
 
   const markStopCompleted = async (stopId: string) => {
@@ -306,7 +373,7 @@ export default function ActiveJobScreen({ navigation, route }: ActiveJobScreenPr
                     style={styles.navigateButton}
                     onPress={() => navigateToStop(stop)}
                   >
-                    <Text style={styles.navigateButtonText}>Navigate</Text>
+                    <Text style={styles.navigateButtonText}>🗺️ Navigate</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.completeButton}

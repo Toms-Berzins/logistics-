@@ -247,7 +247,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Send update to server
       const token = await AuthService.getToken();
       if (token) {
-        await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001'}/api/drivers/${state.driver.id}/status`, {
+        await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.18.2:3001'}/api/drivers/${state.driver.id}/status`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
