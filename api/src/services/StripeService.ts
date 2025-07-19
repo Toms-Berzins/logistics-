@@ -10,24 +10,32 @@ import {
 } from '../models/Subscription';
 
 export class StripeService {
-  private stripe: Stripe;
+  private stripe: Stripe | null;
   private endpointSecret: string;
 
   constructor() {
     if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is required');
+      console.warn('⚠️  STRIPE_SECRET_KEY not configured. Stripe functionality will be disabled.');
+      this.stripe = null;
+    } else {
+      this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-06-30.basil'
+      });
     }
-    
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-06-30.basil'
-    });
     
     this.endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
   }
 
+  private ensureStripeConfigured(): void {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+  }
+
   async createCustomer(organizationId: string, email: string, name: string): Promise<string> {
+    this.ensureStripeConfigured();
     try {
-      const customer = await this.stripe.customers.create({
+      const customer = await this.stripe!.customers.create({
         email,
         name,
         metadata: {
@@ -54,6 +62,7 @@ export class StripeService {
   }
 
   async createSubscription(data: SubscriptionCreateDTO): Promise<Stripe.Subscription> {
+    this.ensureStripeConfigured();
     try {
       // Get organization and customer info
       const client = await databaseConfig.connect();
@@ -106,7 +115,7 @@ export class StripeService {
         (subscriptionData as any).coupon = data.couponCode;
       }
 
-      const subscription = await this.stripe.subscriptions.create(subscriptionData);
+      const subscription = await this.stripe!.subscriptions.create(subscriptionData);
       
       // Cache subscription data
       await this.cacheSubscription(subscription);
@@ -119,13 +128,14 @@ export class StripeService {
   }
 
   async updateSubscription(subscriptionId: string, data: SubscriptionUpdateDTO): Promise<Stripe.Subscription> {
+    this.ensureStripeConfigured();
     try {
       const updateData: Stripe.SubscriptionUpdateParams = {};
 
       if (data.tier && data.billingCycle) {
         const priceId = this.getPriceId(data.tier, data.billingCycle);
         updateData.items = [{
-          id: (await this.stripe.subscriptions.retrieve(subscriptionId)).items.data[0].id,
+          id: (await this.stripe!.subscriptions.retrieve(subscriptionId)).items.data[0].id,
           price: priceId
         }];
       }
@@ -138,7 +148,7 @@ export class StripeService {
         updateData.default_payment_method = data.paymentMethodId;
       }
 
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, updateData);
+      const subscription = await this.stripe!.subscriptions.update(subscriptionId, updateData);
       
       // Update cache
       await this.cacheSubscription(subscription);
@@ -151,8 +161,9 @@ export class StripeService {
   }
 
   async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd = true): Promise<Stripe.Subscription> {
+    this.ensureStripeConfigured();
     try {
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, {
+      const subscription = await this.stripe!.subscriptions.update(subscriptionId, {
         cancel_at_period_end: cancelAtPeriodEnd
       });
 
@@ -167,6 +178,7 @@ export class StripeService {
   }
 
   async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+    this.ensureStripeConfigured();
     try {
       // Try cache first
       const cached = await redisClient.get(`subscription:${subscriptionId}`);
@@ -174,7 +186,7 @@ export class StripeService {
         return JSON.parse(cached);
       }
 
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+      const subscription = await this.stripe!.subscriptions.retrieve(subscriptionId);
       
       // Cache for 5 minutes
       await this.cacheSubscription(subscription);
@@ -187,8 +199,9 @@ export class StripeService {
   }
 
   async getCustomerSubscriptions(customerId: string): Promise<Stripe.Subscription[]> {
+    this.ensureStripeConfigured();
     try {
-      const subscriptions = await this.stripe.subscriptions.list({
+      const subscriptions = await this.stripe!.subscriptions.list({
         customer: customerId,
         status: 'all'
       });
@@ -201,8 +214,9 @@ export class StripeService {
   }
 
   async createBillingPortalSession(customerId: string, returnUrl: string): Promise<string> {
+    this.ensureStripeConfigured();
     try {
-      const session = await this.stripe.billingPortal.sessions.create({
+      const session = await this.stripe!.billingPortal.sessions.create({
         customer: customerId,
         return_url: returnUrl
       });
@@ -215,8 +229,9 @@ export class StripeService {
   }
 
   async getInvoices(customerId: string, limit = 10): Promise<Stripe.Invoice[]> {
+    this.ensureStripeConfigured();
     try {
-      const invoices = await this.stripe.invoices.list({
+      const invoices = await this.stripe!.invoices.list({
         customer: customerId,
         limit
       });
@@ -331,13 +346,14 @@ export class StripeService {
   }
 
   async constructWebhookEvent(payload: string, signature: string): Promise<Stripe.Event> {
+    this.ensureStripeConfigured();
     try {
       if (!this.endpointSecret) {
         console.warn('Webhook signature verification skipped - no secret configured');
         return JSON.parse(payload);
       }
 
-      return this.stripe.webhooks.constructEvent(payload, signature, this.endpointSecret);
+      return this.stripe!.webhooks.constructEvent(payload, signature, this.endpointSecret);
     } catch (error) {
       console.error('Webhook signature verification failed:', error);
       throw new Error('Invalid webhook signature');

@@ -52,7 +52,9 @@
       "Bash(powershell:*)",
       "Bash(npm start)",
       "Bash(npm test:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(copy .env.example .env)",
+      "Bash(del test-shutdown.js)"
     ],
     "deny": []
   }

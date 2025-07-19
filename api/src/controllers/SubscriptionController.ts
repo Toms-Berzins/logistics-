@@ -1,4 +1,14 @@
 import { Request, Response } from 'express';
+
+// Extend Request type to include user property
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    organizationId: string;
+    role: string;
+    permissions: string[];
+  };
+}
 import { databaseConfig } from '../config/database';
 import { redisClient } from '../config/redis';
 import { StripeService } from '../services/StripeService';
@@ -135,7 +145,7 @@ export class SubscriptionController {
   }
 
   // POST /subscriptions
-  async createSubscription(req: Request, res: Response): Promise<void> {
+  async createSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const data: SubscriptionCreateDTO = req.body;
 
@@ -227,7 +237,7 @@ export class SubscriptionController {
   }
 
   // PUT /subscriptions/:id
-  async updateSubscription(req: Request, res: Response): Promise<void> {
+  async updateSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const data: SubscriptionUpdateDTO = req.body;
@@ -329,7 +339,7 @@ export class SubscriptionController {
   }
 
   // DELETE /subscriptions/:id
-  async deleteSubscription(req: Request, res: Response): Promise<void> {
+  async deleteSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
 

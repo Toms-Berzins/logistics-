@@ -127,4 +127,57 @@ server.listen(PORT, async () => {
   }
 });
 
+// Graceful shutdown handling
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n📡 Received ${signal}. Starting graceful shutdown...`);
+  
+  try {
+    // Close HTTP server
+    console.log('🔌 Closing HTTP server...');
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Close Socket.io connections
+    console.log('🔌 Closing Socket.io connections...');
+    io.close();
+
+    // Close Redis connection
+    console.log('🔌 Closing Redis connection...');
+    if (redisClient.isOpen) {
+      await redisClient.disconnect();
+    }
+
+    // Close database connections
+    console.log('🔌 Closing database connections...');
+    await databaseConfig.end();
+
+    console.log('✅ Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during graceful shutdown:', error);
+    process.exit(1);
+  }
+};
+
+// Handle different termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // Nodemon restart
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
 export { app, io, subscriptionNotificationService };
