@@ -10,8 +10,7 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { DriverService } from '../services/DriverService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginScreenProps {
   navigation: any;
@@ -20,38 +19,21 @@ interface LoginScreenProps {
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [driverId, setDriverId] = useState('');
   const [pin, setPin] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const { login, isLoading, error, isAuthenticated, clearError } = useAuth();
 
+  // Navigate to main app when authenticated
   useEffect(() => {
-    checkExistingAuth();
-  }, []);
-
-  const checkExistingAuth = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('driver_token');
-      const savedDriverId = await SecureStore.getItemAsync('driver_id');
-      
-      if (token && savedDriverId) {
-        // Verify token is still valid
-        const driverService = new DriverService();
-        const isValid = await driverService.verifyToken(token);
-        
-        if (isValid) {
-          navigation.replace('JobList');
-          return;
-        } else {
-          // Clear invalid token
-          await SecureStore.deleteItemAsync('driver_token');
-          await SecureStore.deleteItemAsync('driver_id');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-    } finally {
-      setIsCheckingAuth(false);
+    if (isAuthenticated) {
+      navigation.replace('JobList');
     }
-  };
+  }, [isAuthenticated, navigation]);
+
+  // Clear error when component unmounts or inputs change
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [driverId, pin]);
 
   const handleLogin = async () => {
     if (!driverId.trim() || !pin.trim()) {
@@ -59,29 +41,18 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
-      const driverService = new DriverService();
-      const result = await driverService.login(driverId, pin);
+      const success = await login({ driverId: driverId.trim(), pin: pin.trim() });
       
-      if (result.success) {
-        // Store auth data
-        await SecureStore.setItemAsync('driver_token', result.token);
-        await SecureStore.setItemAsync('driver_id', driverId);
-        await SecureStore.setItemAsync('driver_name', result.driverName);
-        
-        Alert.alert('Success', `Welcome back, ${result.driverName}!`, [
-          { text: 'OK', onPress: () => navigation.replace('JobList') }
-        ]);
+      if (success) {
+        // Success feedback - navigation will happen automatically via useEffect
+        Alert.alert('Success', 'Welcome back!');
       } else {
-        Alert.alert('Login Failed', result.message || 'Invalid credentials');
+        // Error is handled by AuthContext and displayed below
+        console.log('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -102,14 +73,19 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     );
   };
 
-  if (isCheckingAuth) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Checking authentication...</Text>
-      </View>
+  const handleForgotCredentials = () => {
+    Alert.alert(
+      'Forgot Credentials',
+      'Contact your dispatcher or fleet manager to reset your credentials.',
+      [
+        { text: 'OK' },
+        { 
+          text: 'Use Demo', 
+          onPress: handleDemo
+        }
+      ]
     );
-  }
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -123,23 +99,31 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         </View>
 
         <View style={styles.form}>
+          {/* Error Display */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Driver ID</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, error && styles.inputError]}
               value={driverId}
               onChangeText={setDriverId}
               placeholder="Enter your driver ID"
               autoCapitalize="characters"
               autoCorrect={false}
               editable={!isLoading}
+              testID="driver-id-input"
             />
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>PIN</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, error && styles.inputError]}
               value={pin}
               onChangeText={setPin}
               placeholder="Enter your PIN"
@@ -147,6 +131,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               keyboardType="numeric"
               maxLength={6}
               editable={!isLoading}
+              testID="pin-input"
             />
           </View>
 
@@ -154,6 +139,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             style={[styles.loginButton, isLoading && styles.disabledButton]}
             onPress={handleLogin}
             disabled={isLoading}
+            testID="login-button"
           >
             {isLoading ? (
               <ActivityIndicator color="#ffffff" />
@@ -166,8 +152,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             style={styles.demoButton}
             onPress={handleDemo}
             disabled={isLoading}
+            testID="demo-button"
           >
             <Text style={styles.demoButtonText}>Use Demo Credentials</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.forgotButton}
+            onPress={handleForgotCredentials}
+            disabled={isLoading}
+          >
+            <Text style={styles.forgotButtonText}>Forgot your credentials?</Text>
           </TouchableOpacity>
         </View>
 
@@ -176,6 +171,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             Having trouble signing in?{'\n'}
             Contact your dispatcher for assistance.
           </Text>
+          <Text style={styles.versionText}>v1.0.0</Text>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -186,17 +182,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748b',
   },
   content: {
     flex: 1,
@@ -220,6 +205,19 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 32,
   },
+  errorContainer: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   inputContainer: {
     marginBottom: 20,
   },
@@ -237,6 +235,9 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#1f2937',
+  },
+  inputError: {
+    borderColor: '#dc2626',
   },
   loginButton: {
     backgroundColor: '#2563eb',
@@ -263,6 +264,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  forgotButton: {
+    marginTop: 8,
+    padding: 8,
+    alignItems: 'center',
+  },
+  forgotButtonText: {
+    color: '#6b7280',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
   footer: {
     alignItems: 'center',
   },
@@ -271,5 +282,10 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 8,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
 });

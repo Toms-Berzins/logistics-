@@ -16,7 +16,12 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.logistics.driver"
+      "bundleIdentifier": "com.logistics.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to track delivery routes and provide real-time driver location updates to dispatch.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs continuous location access to track delivery routes, provide real-time driver location updates, and enable background location tracking for active delivery jobs.",
+        "NSLocationAlwaysUsageDescription": "This app needs continuous location access to track delivery routes and provide real-time driver location updates even when the app is in the background during active delivery jobs."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +31,8 @@
       "package": "com.logistics.driver",
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {

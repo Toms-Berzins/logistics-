@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import io, { Socket } from 'socket.io-client';
+import AuthService from './AuthService';
 
 // Types
 interface LoginResult {
@@ -81,7 +82,24 @@ export class DriverService {
     return DriverService.instance;
   }
 
-  // Authentication
+  /**
+   * Connect socket with current authentication
+   */
+  async connectSocket(): Promise<void> {
+    await this.initializeSocket();
+  }
+
+  /**
+   * Disconnect socket
+   */
+  disconnectSocket(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  // Authentication (kept for backward compatibility, but use AuthService instead)
   async login(driverId: string, pin: string): Promise<LoginResult> {
     try {
       // For demo purposes, simulate API call with mock data
@@ -384,18 +402,25 @@ export class DriverService {
   }
 
   // Socket.IO integration
-  private async initializeSocket(token: string): Promise<void> {
+  private async initializeSocket(token?: string): Promise<void> {
     try {
       if (this.socket) {
         this.socket.disconnect();
       }
 
-      const driverId = await SecureStore.getItemAsync('driver_id');
+      // Get current auth token if not provided
+      const authToken = token || await AuthService.getToken();
+      const currentDriver = AuthService.getCurrentDriver();
+      
+      if (!authToken || !currentDriver) {
+        console.warn('No valid authentication for socket connection');
+        return;
+      }
       
       this.socket = io(this.baseUrl, {
         auth: {
-          token,
-          driverId,
+          token: authToken,
+          driverId: currentDriver.id,
           type: 'driver'
         },
         transports: ['websocket'],
