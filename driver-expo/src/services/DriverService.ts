@@ -71,8 +71,8 @@ export class DriverService {
   private eventListeners: Map<string, Function[]> = new Map();
 
   constructor() {
-    // Use environment variable or fallback to localhost
-    this.baseUrl = process.env.REACT_NATIVE_API_URL || 'http://localhost:3001';
+    // Use environment variable or fallback to your machine's IP
+    this.baseUrl = process.env.REACT_NATIVE_API_URL || 'http://192.168.18.2:3001';
   }
 
   static getInstance(): DriverService {

@@ -45,7 +45,11 @@
       "Bash(where node)",
       "Bash(where npm)",
       "Bash(netsh:*)",
-      "Bash(ipconfig)"
+      "Bash(ipconfig)",
+      "Bash(psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)"
     ],
     "deny": []
   }
