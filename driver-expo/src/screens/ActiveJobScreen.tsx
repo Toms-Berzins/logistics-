@@ -7,8 +7,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  StatusBar
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { DriverService } from '../services/DriverService';
 import { LocationService } from '../services/LocationService';
 
@@ -238,7 +238,7 @@ export default function ActiveJobScreen({ navigation, route }: ActiveJobScreenPr
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+      <StatusBar style="light" />
       
       {/* Header */}
       <View style={styles.header}>

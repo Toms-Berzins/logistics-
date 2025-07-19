@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -20,12 +20,12 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar style="dark" backgroundColor="#ffffff" />
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
-            headerShown: false, // We'll handle headers in individual screens
+            headerShown: false,
             gestureEnabled: true,
             cardStyleInterpolator: ({ current, layouts }) => {
               return {
@@ -57,7 +57,7 @@ export default function App() {
             options={{
               title: 'Jobs',
               headerShown: false,
-              gestureEnabled: false // Prevent swipe back from main screen
+              gestureEnabled: false
             }}
           />
           <Stack.Screen 

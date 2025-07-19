@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import io, { Socket } from 'socket.io-client';
 
 // Types
@@ -390,7 +390,7 @@ export class DriverService {
         this.socket.disconnect();
       }
 
-      const driverId = await AsyncStorage.getItem('driver_id');
+      const driverId = await SecureStore.getItemAsync('driver_id');
       
       this.socket = io(this.baseUrl, {
         auth: {
@@ -473,7 +473,7 @@ export class DriverService {
         timestamp: new Date().toISOString()
       });
 
-      await AsyncStorage.setItem('offline_actions', JSON.stringify(offlineActions));
+      await SecureStore.setItemAsync('offline_actions', JSON.stringify(offlineActions));
     } catch (error) {
       console.error('Error storing offline action:', error);
     }
@@ -481,7 +481,7 @@ export class DriverService {
 
   private async getOfflineActions(): Promise<any[]> {
     try {
-      const stored = await AsyncStorage.getItem('offline_actions');
+      const stored = await SecureStore.getItemAsync('offline_actions');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
       console.error('Error getting offline actions:', error);
@@ -512,7 +512,7 @@ export class DriverService {
       }
 
       // Clear offline actions after sync
-      await AsyncStorage.removeItem('offline_actions');
+      await SecureStore.deleteItemAsync('offline_actions');
       
     } catch (error) {
       console.error('Error syncing offline actions:', error);

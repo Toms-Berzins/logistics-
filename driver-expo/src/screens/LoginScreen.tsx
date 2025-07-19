@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { DriverService } from '../services/DriverService';
 
 interface LoginScreenProps {
@@ -29,8 +29,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   const checkExistingAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('driver_token');
-      const savedDriverId = await AsyncStorage.getItem('driver_id');
+      const token = await SecureStore.getItemAsync('driver_token');
+      const savedDriverId = await SecureStore.getItemAsync('driver_id');
       
       if (token && savedDriverId) {
         // Verify token is still valid
@@ -42,7 +42,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           return;
         } else {
           // Clear invalid token
-          await AsyncStorage.multiRemove(['driver_token', 'driver_id']);
+          await SecureStore.deleteItemAsync('driver_token');
+          await SecureStore.deleteItemAsync('driver_id');
         }
       }
     } catch (error) {
@@ -66,11 +67,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       
       if (result.success) {
         // Store auth data
-        await AsyncStorage.multiSet([
-          ['driver_token', result.token],
-          ['driver_id', driverId],
-          ['driver_name', result.driverName]
-        ]);
+        await SecureStore.setItemAsync('driver_token', result.token);
+        await SecureStore.setItemAsync('driver_id', driverId);
+        await SecureStore.setItemAsync('driver_name', result.driverName);
         
         Alert.alert('Success', `Welcome back, ${result.driverName}!`, [
           { text: 'OK', onPress: () => navigation.replace('JobList') }

@@ -41,7 +41,11 @@
       "Bash(go vet:*)",
       "Bash(timeout:*)",
       "Bash(docker network:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(where node)",
+      "Bash(where npm)",
+      "Bash(netsh:*)",
+      "Bash(ipconfig)"
     ],
     "deny": []
   }
