@@ -15,6 +15,7 @@ import { healthRoutes } from './routes/health';
 import { trackingRoutes } from './routes/drivers/tracking';
 import mappingRoutes from './routes/mapping';
 import { authRoutes } from './routes/auth';
+import { handleStripeWebhook } from './payments/stripe-webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
@@ -66,6 +67,9 @@ app.use(cors({
   ],
   credentials: true
 }));
+// Stripe webhook endpoint needs raw body, so place before JSON middleware
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(limiter);

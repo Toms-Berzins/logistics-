@@ -49,7 +49,8 @@
       "Bash(psql:*)",
       "Bash(docker exec:*)",
       "Bash(cmd /c:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm start)"
     ],
     "deny": []
   }
