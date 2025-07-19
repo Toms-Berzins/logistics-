@@ -153,7 +153,7 @@ async function updateOrganizationSubscription(
     );
 
     if (orgQuery.rows.length === 0) {
-      console.error(`No organization found for Stripe customer: ${stripeCustomerId}`);
+      console.error('No organization found for Stripe customer: %s', stripeCustomerId);
       return;
     }
 
@@ -231,7 +231,7 @@ async function updateOrganizationSubscription(
     // Cache subscription status in Redis
     await cacheSubscriptionStatus(organizationId, subscriptionData.status, tier);
 
-    console.log(`Updated subscription for organization ${organizationId}: ${subscriptionData.status}`);
+    console.log('Updated subscription for organization %s: %s', organizationId, subscriptionData.status);
   } finally {
     client.release();
   }
@@ -249,7 +249,7 @@ async function updateClerkOrganizationMetadata(
     );
 
     if (!organization) {
-      console.error(`No Clerk organization found for Stripe customer: ${stripeCustomerId}`);
+      console.error('No Clerk organization found for Stripe customer: %s', stripeCustomerId);
       return;
     }
 
@@ -267,7 +267,7 @@ async function updateClerkOrganizationMetadata(
       }
     });
 
-    console.log(`Updated Clerk metadata for organization ${organization.id}`);
+    console.log('Updated Clerk metadata for organization %s', organization.id);
   } catch (error) {
     console.error('Failed to update Clerk organization metadata:', error);
   }
@@ -334,23 +334,23 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log('Unhandled event type: %s', event.type);
     }
 
     const endTime = performance.now();
     const processingTime = endTime - startTime;
 
     // Log performance
-    console.log(`Webhook ${event.type} processed in ${processingTime.toFixed(2)}ms`);
+    console.log('Webhook %s processed in %sms', event.type, processingTime.toFixed(2));
 
     // Warn if processing takes too long
     if (processingTime > 500) {
-      console.warn(`Slow webhook processing: ${processingTime.toFixed(2)}ms for ${event.type}`);
+      console.warn('Slow webhook processing: %sms for %s', processingTime.toFixed(2), event.type);
     }
 
     res.json({ received: true, processingTime: processingTime.toFixed(2) });
   } catch (error) {
-    console.error(`Error processing webhook ${event.type}:`, error);
+    console.error('Error processing webhook %s:', event.type, error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 }
@@ -382,7 +382,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription): Pro
   });
 
   // Send welcome email or trigger onboarding
-  console.log(`New subscription created for customer ${customerId}: ${tier} tier`);
+  console.log('New subscription created for customer %s: %s tier', customerId, tier);
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
@@ -411,7 +411,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
     cancelAtPeriodEnd: (subscription as any).cancel_at_period_end
   });
 
-  console.log(`Subscription updated for customer ${customerId}: ${subscription.status}`);
+  console.log('Subscription updated for customer %s: %s', customerId, subscription.status);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
@@ -425,7 +425,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Pro
     status: 'canceled'
   });
 
-  console.log(`Subscription canceled for customer ${customerId}`);
+  console.log('Subscription canceled for customer %s', customerId);
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
@@ -444,7 +444,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
       status: 'active'
     });
 
-    console.log(`Payment succeeded for customer ${customerId}`);
+    console.log('Payment succeeded for customer %s', customerId);
   }
 }
 
@@ -465,7 +465,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     });
 
     // TODO: Send payment failed notification
-    console.log(`Payment failed for customer ${customerId}`);
+    console.log('Payment failed for customer %s', customerId);
   }
 }
 
@@ -473,11 +473,11 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription): Promise<vo
   const customerId = subscription.customer as string;
   
   // TODO: Send trial ending notification
-  console.log(`Trial will end for customer ${customerId}`);
+  console.log('Trial will end for customer %s', customerId);
 }
 
 async function handleCustomerCreated(customer: Stripe.Customer): Promise<void> {
-  console.log(`New customer created: ${customer.id}`);
+  console.log('New customer created: %s', customer.id);
   
   // TODO: Set up default organization settings
 }

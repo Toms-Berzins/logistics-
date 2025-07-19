@@ -81,9 +81,17 @@ const featureMatrix = {
 
 const FeatureIcon: React.FC<{ included: boolean }> = ({ included }) => (
   included ? (
-    <CheckIcon className={`${pricingTokens.icons.size} ${pricingTokens.icons.included}`} />
+    <CheckIcon 
+      className={`${pricingTokens.icons.size} ${pricingTokens.icons.included}`}
+      data-testid="feature-included-icon"
+      aria-label="Feature included"
+    />
   ) : (
-    <XMarkIcon className={`${pricingTokens.icons.size} ${pricingTokens.icons.excluded}`} />
+    <XMarkIcon 
+      className={`${pricingTokens.icons.size} ${pricingTokens.icons.excluded}`}
+      data-testid="feature-excluded-icon"
+      aria-label="Feature not included"
+    />
   )
 );
 
@@ -229,7 +237,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             
             {/* Included features */}
             {features.included.map((feature, index) => (
-              <div key={`included-${index}`} className="flex items-center gap-3">
+              <div 
+                key={`included-${index}`} 
+                className="flex items-center gap-3"
+                data-testid="feature-included"
+              >
                 <FeatureIcon included={true} />
                 <span className={`${pricingTokens.typography.features} text-gray-700`}>
                   {feature}
@@ -239,7 +251,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             
             {/* Excluded features (only show a few for comparison) */}
             {features.excluded.slice(0, 3).map((feature, index) => (
-              <div key={`excluded-${index}`} className="flex items-center gap-3 opacity-50">
+              <div 
+                key={`excluded-${index}`} 
+                className="flex items-center gap-3 opacity-50"
+                data-testid="feature-excluded"
+              >
                 <FeatureIcon included={false} />
                 <span className={`${pricingTokens.typography.features} text-gray-500`}>
                   {feature}

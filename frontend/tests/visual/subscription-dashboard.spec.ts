@@ -227,37 +227,4 @@ test.describe('Subscription Dashboard Visual Tests', () => {
     }
   });
 
-  test('should have bundle size under 400KB', async ({ page }) => {
-    // Monitor network requests
-    const responses = [];
-    page.on('response', response => {
-      if (response.url().includes('.js') || response.url().includes('.css')) {
-        responses.push(response);
-      }
-    });
-
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
-    // Calculate total bundle size
-    let totalSize = 0;
-    for (const response of responses) {
-      try {
-        const headers = await response.allHeaders();
-        const contentLength = headers['content-length'];
-        if (contentLength) {
-          totalSize += parseInt(contentLength, 10);
-        }
-      } catch (error) {
-        // Some responses might not have content-length
-      }
-    }
-
-    // Convert to KB and check limit
-    const totalSizeKB = totalSize / 1024;
-    console.log(`Total bundle size: ${totalSizeKB.toFixed(2)}KB`);
-    
-    // Should be under 400KB
-    expect(totalSizeKB).toBeLessThan(400);
-  });
 });

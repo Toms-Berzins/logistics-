@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import session from 'express-session';
@@ -18,6 +19,7 @@ import { authRoutes } from './routes/auth';
 import { subscriptionRoutes } from './routes/subscriptions';
 import { handleStripeWebhook } from './payments/stripe-webhooks';
 import { errorHandler } from './middleware/errorHandler';
+import { csrfMiddleware, csrfTokenMiddleware, csrfTokenHandler, csrfErrorHandler } from './middleware/csrf';
 import { socketHandler } from './sockets/socketHandler';
 import { performanceMonitor } from './utils/performanceMonitor';
 import { SubscriptionNotificationService } from './services/SubscriptionNotificationService';
@@ -72,6 +74,9 @@ app.use(cors({
 // Stripe webhook endpoint needs raw body, so place before JSON middleware
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
+// Cookie parser must come before session and CSRF
+app.use(cookieParser());
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(limiter);
@@ -89,8 +94,32 @@ app.use(session({
   }
 }));
 
+// CSRF token middleware (makes token available in res.locals)
+app.use(csrfTokenMiddleware);
+
+// CSRF token endpoint (GET requests are excluded from CSRF validation)
+app.get('/api/csrf-token', csrfTokenHandler);
+
 // Initialize subscription notification service
 const subscriptionNotificationService = new SubscriptionNotificationService(io);
+
+// CSRF protection middleware (after session, but excludes specific routes)
+app.use('/api', (req, res, next) => {
+  // Skip CSRF for these endpoints
+  const skipPaths = [
+    '/api/webhooks/', // All webhook endpoints
+    '/api/health',    // Health check
+    '/api/csrf-token' // CSRF token endpoint
+  ];
+  
+  const shouldSkip = skipPaths.some(path => req.path.startsWith(path));
+  if (shouldSkip) {
+    return next();
+  }
+  
+  // Apply CSRF protection for other endpoints
+  csrfMiddleware(req, res, next);
+});
 
 // Routes
 app.use('/api/health', healthRoutes);
@@ -102,7 +131,8 @@ app.use('/api/subscriptions', subscriptionRoutes);
 // Socket.io
 socketHandler(io);
 
-// Error handling
+// Error handling - CSRF errors first, then general errors
+app.use(csrfErrorHandler);
 app.use(errorHandler);
 
 // Start server
@@ -129,7 +159,7 @@ server.listen(PORT, async () => {
 
 // Graceful shutdown handling
 const gracefulShutdown = async (signal: string) => {
-  console.log(`\n📡 Received ${signal}. Starting graceful shutdown...`);
+  console.log('\n📡 Received %s. Starting graceful shutdown...', signal);
   
   try {
     // Close HTTP server

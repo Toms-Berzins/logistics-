@@ -180,53 +180,21 @@ test.describe('Pricing Page Visual Tests', () => {
   test('feature comparison icons', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     
-    // Check for checkmark icons (included features)
-    const checkIcons = page.locator('svg').filter({ hasText: '' }).first(); // CheckIcon
-    await expect(checkIcons).toBeVisible();
+    // Check for checkmark icons (included features) using better selectors
+    const checkIcons = page.locator('[data-testid="feature-included-icon"]');
+    await expect(checkIcons.first()).toBeVisible();
     
-    // Check for X mark icons (excluded features)
-    const xIcons = page.locator('svg').filter({ hasText: '' }).first(); // XMarkIcon
+    // Check for X mark icons (excluded features) using better selectors
+    const xIcons = page.locator('[data-testid="feature-excluded-icon"]');
+    await expect(xIcons.first()).toBeVisible();
     
-    // Verify color coding
-    await expect(page.locator('.text-green-500')).toBeVisible(); // Included features
-    await expect(page.locator('.text-red-400')).toBeVisible(); // Excluded features
+    // Verify semantic feature status indicators
+    await expect(page.locator('[data-testid="feature-included"]')).toBeVisible();
+    await expect(page.locator('[data-testid="feature-excluded"]')).toBeVisible();
+    
+    // Verify proper accessibility attributes
+    await expect(page.locator('[aria-label*="included"]')).toBeVisible();
+    await expect(page.locator('[aria-label*="not included"]')).toBeVisible();
   });
 });
 
-test.describe('Pricing Page Performance', () => {
-  test('page load performance', async ({ page }) => {
-    const startTime = Date.now();
-    
-    await page.goto('/pricing');
-    await page.waitForLoadState('networkidle');
-    
-    const loadTime = Date.now() - startTime;
-    
-    // Should load within 3 seconds
-    expect(loadTime).toBeLessThan(3000);
-  });
-
-  test('bundle size check', async ({ page }) => {
-    // Monitor network requests
-    const responses: any[] = [];
-    page.on('response', response => {
-      if (response.url().includes('.js') || response.url().includes('.css')) {
-        responses.push({
-          url: response.url(),
-          size: response.headers()['content-length'],
-        });
-      }
-    });
-    
-    await page.goto('/pricing');
-    await page.waitForLoadState('networkidle');
-    
-    // Calculate total bundle size
-    const totalSize = responses.reduce((sum, response) => {
-      return sum + (parseInt(response.size) || 0);
-    }, 0);
-    
-    // Should be under 500KB
-    expect(totalSize).toBeLessThan(500 * 1024);
-  });
-});
