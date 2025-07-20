@@ -3,8 +3,8 @@
 import React from 'react';
 import { ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import { MetricCardProps, PerformanceIndicator } from '../../types/analytics';
-import { chartTokens, getPerformanceColor, getTrendColor } from '../../styles/tokens/charts';
-import { dashboardTokens } from '../../styles/dashboard-tokens';
+import { designTokens } from '../../styles/design-system/tokens';
+import type { LogisticsProps } from '../../styles/design-system/types';
 
 const formatValue = (value: number, format?: string, unit?: string): string => {
   switch (format) {
@@ -20,15 +20,23 @@ const formatValue = (value: number, format?: string, unit?: string): string => {
   }
 };
 
+const getTrendColor = (change: number): 'positive' | 'negative' | 'neutral' => {
+  if (Math.abs(change) < 0.1) return 'neutral';
+  return change > 0 ? 'positive' : 'negative';
+};
+
 const getPerformanceIndicator = (value: number, target: number): PerformanceIndicator => {
-  const performance = getPerformanceColor(value, target);
+  const performance = value >= target * 1.1 ? 'excellent' :
+                     value >= target ? 'good' :
+                     value >= target * 0.8 ? 'average' :
+                     value >= target * 0.6 ? 'poor' : 'critical';
   
   const indicators = {
-    excellent: { color: chartTokens.colors.performance.excellent, message: 'Exceeding target' },
-    good: { color: chartTokens.colors.performance.good, message: 'Meeting target' },
-    average: { color: chartTokens.colors.performance.average, message: 'Below target' },
-    poor: { color: chartTokens.colors.performance.poor, message: 'Needs attention' },
-    critical: { color: chartTokens.colors.performance.critical, message: 'Critical' },
+    excellent: { color: designTokens.colors.semantic.success[500], message: 'Exceeding target' },
+    good: { color: designTokens.colors.semantic.success[400], message: 'Meeting target' },
+    average: { color: designTokens.colors.semantic.warning[500], message: 'Below target' },
+    poor: { color: designTokens.colors.semantic.warning[600], message: 'Needs attention' },
+    critical: { color: designTokens.colors.semantic.error[500], message: 'Critical' },
   };
   
   return {
@@ -53,21 +61,21 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   
   const sizeConfig = {
     small: {
-      container: 'p-4',
+      container: 'p-component-sm',
       title: 'text-sm font-medium',
       value: 'text-lg font-bold',
       change: 'text-xs',
       icon: 'w-4 h-4',
     },
     medium: {
-      container: 'p-6',
+      container: 'p-dashboard-card-padding',
       title: 'text-base font-medium',
       value: 'text-2xl font-bold',
       change: 'text-sm',
       icon: 'w-5 h-5',
     },
     large: {
-      container: 'p-8',
+      container: 'p-component-xl',
       title: 'text-lg font-semibold',
       value: 'text-3xl font-bold',
       change: 'text-base',
@@ -81,10 +89,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       className={`
-        ${dashboardTokens.cards.base}
+        bg-neutral-50 border border-neutral-200 rounded-lg shadow-card
         ${config.container}
-        ${isClickable ? 'cursor-pointer hover:shadow-lg transition-all duration-200' : ''}
-        ${isClickable ? 'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none' : ''}
+        ${isClickable ? 'cursor-pointer hover:shadow-card-hover transition-all duration-normal focus-ring' : ''}
         ${className}
       `}
       onClick={onClick}
@@ -99,13 +106,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       aria-label={`${name}: ${formattedValue}, ${changeType === 'increase' ? 'increased' : 'decreased'} by ${formattedChange}% from last period, ${performance.message.toLowerCase()}`}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-micro-md">
         <div className="flex-1 min-w-0">
-          <h3 className={`${config.title} text-gray-900 truncate`}>
+          <h3 className={`${config.title} text-neutral-900 truncate`}>
             {name}
           </h3>
           {description && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+            <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
               {description}
             </p>
           )}
@@ -115,11 +122,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div 
           className={`
             w-3 h-3 rounded-full flex-shrink-0 ml-3
-            ${performance.status === 'excellent' ? 'bg-green-500' : ''}
-            ${performance.status === 'good' ? 'bg-green-400' : ''}
-            ${performance.status === 'average' ? 'bg-yellow-500' : ''}
-            ${performance.status === 'poor' ? 'bg-orange-500' : ''}
-            ${performance.status === 'critical' ? 'bg-red-500' : ''}
+            ${performance.status === 'excellent' ? 'bg-success-500' : ''}
+            ${performance.status === 'good' ? 'bg-success-400' : ''}
+            ${performance.status === 'average' ? 'bg-warning-500' : ''}
+            ${performance.status === 'poor' ? 'bg-warning-600' : ''}
+            ${performance.status === 'critical' ? 'bg-error-500' : ''}
           `}
           title={performance.message}
           aria-label={`Performance: ${performance.message}`}
@@ -127,32 +134,32 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
       
       {/* Value and Change */}
-      <div className="mb-4">
-        <div className={`${config.value} text-gray-900 mb-1`}>
+      <div className="mb-component-sm">
+        <div className={`${config.value} text-neutral-900 mb-micro-xs`}>
           {formattedValue}
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-micro-xs">
           {changeType === 'increase' ? (
             <ArrowUpIcon 
-              className={`${config.icon} ${trendColor === 'positive' ? 'text-green-500' : 'text-red-500'}`}
+              className={`${config.icon} ${trendColor === 'positive' ? 'text-success-500' : 'text-error-500'}`}
               aria-hidden="true"
             />
           ) : (
             <ArrowDownIcon 
-              className={`${config.icon} ${trendColor === 'negative' ? 'text-red-500' : 'text-green-500'}`}
+              className={`${config.icon} ${trendColor === 'negative' ? 'text-error-500' : 'text-success-500'}`}
               aria-hidden="true"
             />
           )}
           <span className={`
             ${config.change} font-medium
-            ${trendColor === 'positive' ? 'text-green-600' : ''}
-            ${trendColor === 'negative' ? 'text-red-600' : ''}
-            ${trendColor === 'neutral' ? 'text-gray-600' : ''}
+            ${trendColor === 'positive' ? 'text-success-600' : ''}
+            ${trendColor === 'negative' ? 'text-error-600' : ''}
+            ${trendColor === 'neutral' ? 'text-neutral-600' : ''}
           `}>
             {formattedChange.toFixed(1)}%
           </span>
-          <span className={`${config.change} text-gray-500`}>
+          <span className={`${config.change} text-neutral-500`}>
             vs last period
           </span>
         </div>
@@ -160,12 +167,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       
       {/* Mini Trend Chart */}
       {showTrend && metric.trend.length > 0 && (
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-2">
-            <ChartBarIcon className="w-4 h-4 text-gray-400" aria-hidden="true" />
-            <span className="text-xs text-gray-500">7-day trend</span>
+        <div className="mb-micro-md">
+          <div className="flex items-center gap-micro-sm mb-micro-sm">
+            <ChartBarIcon className="w-4 h-4 text-neutral-400" aria-hidden="true" />
+            <span className="text-xs text-neutral-500">7-day trend</span>
           </div>
-          <div className="h-8 flex items-end gap-1" aria-hidden="true">
+          <div className="h-8 flex items-end gap-micro-xs" aria-hidden="true">
             {metric.trend.slice(-7).map((point, index) => {
               const height = Math.max(8, (point.value / Math.max(...metric.trend.map(p => p.value))) * 32);
               return (
@@ -173,9 +180,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                   key={index}
                   className={`
                     flex-1 rounded-sm
-                    ${trendColor === 'positive' ? 'bg-green-200' : ''}
-                    ${trendColor === 'negative' ? 'bg-red-200' : ''}
-                    ${trendColor === 'neutral' ? 'bg-gray-200' : ''}
+                    ${trendColor === 'positive' ? 'bg-success-200' : ''}
+                    ${trendColor === 'negative' ? 'bg-error-200' : ''}
+                    ${trendColor === 'neutral' ? 'bg-neutral-200' : ''}
                   `}
                   style={{ height: `${height}px` }}
                 />
@@ -187,27 +194,27 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       
       {/* Target Progress */}
       <div className="mt-auto">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+        <div className="flex items-center justify-between text-xs text-neutral-500 mb-micro-xs">
           <span>Target: {formatValue(target, format, unit)}</span>
           <span className={`font-medium ${
             performance.status === 'excellent' || performance.status === 'good' 
-              ? 'text-green-600' 
+              ? 'text-success-600' 
               : performance.status === 'critical' 
-                ? 'text-red-600' 
-                : 'text-yellow-600'
+                ? 'text-error-600' 
+                : 'text-warning-600'
           }`}>
             {((value / target) * 100).toFixed(0)}%
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-neutral-200 rounded-full h-2 overflow-hidden">
           <div
             className={`
-              h-full rounded-full transition-all duration-300 ease-out
-              ${performance.status === 'excellent' ? 'bg-green-500' : ''}
-              ${performance.status === 'good' ? 'bg-green-400' : ''}
-              ${performance.status === 'average' ? 'bg-yellow-500' : ''}
-              ${performance.status === 'poor' ? 'bg-orange-500' : ''}
-              ${performance.status === 'critical' ? 'bg-red-500' : ''}
+              h-full rounded-full transition-all duration-moderate ease-out
+              ${performance.status === 'excellent' ? 'bg-success-500' : ''}
+              ${performance.status === 'good' ? 'bg-success-400' : ''}
+              ${performance.status === 'average' ? 'bg-warning-500' : ''}
+              ${performance.status === 'poor' ? 'bg-warning-600' : ''}
+              ${performance.status === 'critical' ? 'bg-error-500' : ''}
             `}
             style={{ 
               width: `${Math.min(100, (value / target) * 100)}%`,
@@ -219,7 +226,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       
       {/* Click indicator */}
       {isClickable && (
-        <div className="mt-3 text-xs text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="mt-micro-md text-xs text-primary-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
           Click for details →
         </div>
       )}

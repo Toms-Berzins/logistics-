@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useDriverTracking, DriverLocation, DriverStatus } from '../../hooks/useDriverTracking';
 import { useAIRoutePrediction, RoutePrediction } from '../../hooks/useAIRoutePrediction';
@@ -66,6 +66,9 @@ const DriverMap: React.FC<DriverMapProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<string | null>(null);
   const [currentZoom, setCurrentZoom] = useState(initialZoom);
+  const [isMapMoving, setIsMapMoving] = useState(false);
+  const renderTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastRenderTime = useRef<number>(0);
   // const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 
   // Driver tracking hook
@@ -209,6 +212,14 @@ const DriverMap: React.FC<DriverMapProps> = ({
     map.on('zoom', () => {
       setCurrentZoom(map.getZoom());
     });
+    
+    map.on('movestart', () => {
+      setIsMapMoving(true);
+    });
+    
+    map.on('moveend', () => {
+      setIsMapMoving(false);
+    });
 
     map.on('error', (e) => {
       console.error('Mapbox error:', e.error);
@@ -221,7 +232,18 @@ const DriverMap: React.FC<DriverMapProps> = ({
     };
   }, [mapboxToken, initialCenter, initialZoom, showTraffic, show3D, onMapClick]);
 
-  // Create driver marker element
+  // Memoized driver locations for performance
+  const driverLocationsList = useMemo(() => 
+    Array.from(driverLocations.values()), 
+    [driverLocations]
+  );
+  
+  const driverStatusesList = useMemo(() => 
+    Array.from(driverStatuses.entries()), 
+    [driverStatuses]
+  );
+  
+  // Optimized driver marker creation with canvas for large datasets
   const createDriverMarker = useCallback((driver: DriverLocation, status?: DriverStatus) => {
     const el = document.createElement('div');
     el.className = 'driver-marker';
@@ -277,7 +299,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
       ` : ''}
     `;
 
-    // Add pulsing animation for recent updates (client-side only)
+    // Add pulsing animation for recent updates (client-side only) - throttled
     if (typeof window !== 'undefined') {
       const updateTime = new Date(driver.timestamp).getTime();
       const now = Date.now();
@@ -285,6 +307,10 @@ const DriverMap: React.FC<DriverMapProps> = ({
         el.style.animation = 'pulse 2s infinite';
       }
     }
+    
+    // Add performance attributes
+    el.style.willChange = 'transform';
+    el.style.contain = 'layout style paint';
 
     // Add hover effects
     el.addEventListener('mouseenter', () => {
@@ -359,89 +385,104 @@ const DriverMap: React.FC<DriverMapProps> = ({
     `;
   }, []);
 
-  // Update driver markers when locations change (only when not using smart clustering)
+  // Optimized driver marker updates with throttling and batching
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded || useSmartClustering) return;
+    if (!mapRef.current || !mapLoaded || useSmartClustering || isMapMoving) return;
 
-    const map = mapRef.current;
-    const currentMarkers = markersRef.current;
+    // Throttle updates to prevent excessive rendering
+    const now = performance.now();
+    if (now - lastRenderTime.current < 16) { // ~60fps limit
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+      }
+      renderTimeoutRef.current = setTimeout(() => {
+        lastRenderTime.current = performance.now();
+        updateMarkersImmediate();
+      }, 16);
+      return;
+    }
+    
+    lastRenderTime.current = now;
+    updateMarkersImmediate();
+    
+    function updateMarkersImmediate() {
+      if (!mapRef.current) return;
+      
+      const map = mapRef.current;
+      const currentMarkers = markersRef.current;
+      const updates: Array<() => void> = [];
+      const removals: Array<() => void> = [];
+      
+      // Batch marker updates
+      driverLocationsList.forEach((driver) => {
+        const driverId = driver.driverId;
+        const status = driverStatuses.get(driverId);
+        const existingMarker = currentMarkers.get(driverId);
 
-    // Add/update markers for current drivers
-    driverLocations.forEach((driver, driverId) => {
-      const status = driverStatuses.get(driverId);
-      const existingMarker = currentMarkers.get(driverId);
+        if (existingMarker) {
+          // Queue position update
+          updates.push(() => {
+            existingMarker.marker.setLngLat([driver.longitude, driver.latitude]);
+            
+            // Update popup content if needed
+            existingMarker.popup.setHTML(createDriverPopup(driver, status));
+          });
+        } else {
+          // Queue new marker creation
+          updates.push(() => {
+            const element = createDriverMarker(driver, status);
+            
+            const popup = new mapboxgl.Popup({
+              offset: 25,
+              closeButton: false,
+              closeOnClick: false,
+            }).setHTML(createDriverPopup(driver, status));
 
-      if (existingMarker) {
-        // Update existing marker
-        existingMarker.marker.setLngLat([driver.longitude, driver.latitude]);
-        
-        // Update marker appearance - remove old marker and create new one with updated element
-        const newElement = createDriverMarker(driver, status);
-        existingMarker.marker.remove();
-        
-        // Create new popup with updated content
-        const popup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-        }).setHTML(createDriverPopup(driver, status));
-        
-        // Create new marker with updated element
-        const newMarker = new mapboxgl.Marker(newElement)
-          .setLngLat([driver.longitude, driver.latitude])
-          .setPopup(popup)
-          .addTo(map);
-        
-        // Update the stored marker reference
-        existingMarker.marker = newMarker;
-        existingMarker.element = newElement;
-        existingMarker.popup = popup;
-        
-        // Add click handler
-        newElement.addEventListener('click', () => {
-          // setSelectedDriver(driverId);
-          onDriverClick?.(driver);
-        });
-      } else {
-        // Create new marker
-        const element = createDriverMarker(driver, status);
-        
-        const popup = new mapboxgl.Popup({
-          offset: 25,
-          closeButton: false,
-          closeOnClick: false,
-        }).setHTML(createDriverPopup(driver, status));
+            const marker = new mapboxgl.Marker(element)
+              .setLngLat([driver.longitude, driver.latitude])
+              .setPopup(popup)
+              .addTo(map);
 
-        const marker = new mapboxgl.Marker(element)
-          .setLngLat([driver.longitude, driver.latitude])
-          .setPopup(popup)
-          .addTo(map);
+            // Add click handler
+            element.addEventListener('click', () => {
+              onDriverClick?.(driver);
+            });
 
-        // Add click handler
-        element.addEventListener('click', () => {
-          // setSelectedDriver(driverId);
-          onDriverClick?.(driver);
-        });
+            // Store marker reference
+            currentMarkers.set(driverId, {
+              element,
+              marker,
+              popup,
+              driverId,
+            });
+          });
+        }
+      });
 
-        // Store marker reference
-        currentMarkers.set(driverId, {
-          element,
-          marker,
-          popup,
-          driverId,
+      // Queue marker removals
+      currentMarkers.forEach((markerData, driverId) => {
+        if (!driverLocations.has(driverId)) {
+          removals.push(() => {
+            markerData.marker.remove();
+            currentMarkers.delete(driverId);
+          });
+        }
+      });
+      
+      // Execute batched updates using requestAnimationFrame
+      if (updates.length > 0 || removals.length > 0) {
+        requestAnimationFrame(() => {
+          // Process removals first
+          removals.forEach(removal => removal());
+          
+          // Then process updates/additions
+          updates.forEach(update => update());
+          
+          markersRef.current = currentMarkers;
         });
       }
-    });
-
-    // Remove markers for drivers no longer present
-    currentMarkers.forEach((markerData, driverId) => {
-      if (!driverLocations.has(driverId)) {
-        markerData.marker.remove();
-        currentMarkers.delete(driverId);
-      }
-    });
-
-    markersRef.current = currentMarkers;
-  }, [driverLocations, driverStatuses, mapLoaded, useSmartClustering, createDriverMarker, createDriverPopup, onDriverClick]);
+    }
+  }, [driverLocationsList, driverStatusesList, mapLoaded, useSmartClustering, isMapMoving, createDriverMarker, createDriverPopup, onDriverClick]);
 
   // Clear individual markers when switching to smart clustering
   useEffect(() => {
@@ -451,25 +492,27 @@ const DriverMap: React.FC<DriverMapProps> = ({
     }
   }, [useSmartClustering]);
 
-  // Auto-fit map to show all drivers
+  // Optimized auto-fit with memoized coordinates
+  const driverCoordinates = useMemo(() => 
+    driverLocationsList.map(driver => [driver.longitude, driver.latitude] as [number, number]), 
+    [driverLocationsList]
+  );
+  
   const fitToDrivers = useCallback(() => {
-    if (!mapRef.current || driverLocations.size === 0) return;
+    if (!mapRef.current || driverCoordinates.length === 0) return;
 
-    const coordinates: [number, number][] = Array.from(driverLocations.values())
-      .map(driver => [driver.longitude, driver.latitude]);
-
-    if (coordinates.length === 1) {
+    if (driverCoordinates.length === 1) {
       // Single driver - center on them
       mapRef.current.flyTo({
-        center: coordinates[0],
+        center: driverCoordinates[0],
         zoom: 14,
         duration: 1000,
       });
-    } else if (coordinates.length > 1) {
+    } else if (driverCoordinates.length > 1) {
       // Multiple drivers - fit bounds
-      const bounds = coordinates.reduce((bounds, coord) => {
+      const bounds = driverCoordinates.reduce((bounds, coord) => {
         return bounds.extend(coord);
-      }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+      }, new mapboxgl.LngLatBounds(driverCoordinates[0], driverCoordinates[0]));
 
       mapRef.current.fitBounds(bounds, {
         padding: 50,
@@ -477,7 +520,7 @@ const DriverMap: React.FC<DriverMapProps> = ({
         duration: 1000,
       });
     }
-  }, [driverLocations]);
+  }, [driverCoordinates]);
 
   // Find nearby drivers around a location
   const handleFindNearby = useCallback(async (center: [number, number], radius: number = 5) => {

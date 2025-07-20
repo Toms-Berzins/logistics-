@@ -1,178 +1,254 @@
 import type { Config } from 'tailwindcss'
+import { designTokens, breakpoints, grid, accessibility } from './src/styles/design-system/tokens'
 
 const config: Config = {
+  mode: 'jit',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/styles/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  safelist: [
+    // Safelist dynamic classes for logistics states
+    {
+      pattern: /bg-(primary|success|warning|error|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)/,
+    },
+    {
+      pattern: /text-(primary|success|warning|error|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)/,
+    },
+    {
+      pattern: /border-(primary|success|warning|error|info|neutral)-(50|100|200|300|400|500|600|700|800|900|950)/,
+    },
+    // Logistics-specific color patterns
+    {
+      pattern: /bg-driver-(available|busy|offline|enRoute|break|emergency)/,
+    },
+    {
+      pattern: /bg-job-(pending|assigned|inProgress|completed|cancelled|delayed)/,
+    },
+    {
+      pattern: /bg-route-(active|completed|delayed|optimized|traffic)/,
+    },
+    {
+      pattern: /text-driver-(available|busy|offline|enRoute|break|emergency)/,
+    },
+    {
+      pattern: /text-job-(pending|assigned|inProgress|completed|cancelled|delayed)/,
+    },
+    {
+      pattern: /text-route-(active|completed|delayed|optimized|traffic)/,
+    },
   ],
   theme: {
     extend: {
+      // Colors from design tokens
       colors: {
-        // Brand colors for logistics operations
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#1E40AF', // Primary blue
-          700: '#1d4ed8',
-          800: '#1e3a8a',
-          900: '#1e3a8a',
-          950: '#172554',
-        },
-        // Semantic colors for logistics status
-        success: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#059669', // Available/success green
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
-        },
-        warning: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#D97706', // Warning amber
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-          950: '#451a03',
-        },
-        error: {
-          50: '#fef2f2',
-          100: '#fee2e2',
-          200: '#fecaca',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#DC2626', // Error red
-          600: '#dc2626',
-          700: '#b91c1c',
-          800: '#991b1b',
-          900: '#7f1d1d',
-          950: '#450a0a',
-        },
-        info: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
-        },
-        // Neutral colors with high contrast
-        neutral: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
-          950: '#0a0a0a',
-        },
+        // Brand colors
+        primary: designTokens.colors.brand.primary,
+        secondary: designTokens.colors.brand.secondary,
+        
+        // Semantic colors
+        success: designTokens.colors.semantic.success,
+        warning: designTokens.colors.semantic.warning,
+        error: designTokens.colors.semantic.error,
+        info: designTokens.colors.semantic.info,
+        neutral: designTokens.colors.neutral,
+        
+        // Logistics operational colors
+        'driver-available': designTokens.colors.logistics.driver.available,
+        'driver-busy': designTokens.colors.logistics.driver.busy,
+        'driver-offline': designTokens.colors.logistics.driver.offline,
+        'driver-enRoute': designTokens.colors.logistics.driver.enRoute,
+        'driver-break': designTokens.colors.logistics.driver.break,
+        'driver-emergency': designTokens.colors.logistics.driver.emergency,
+        
+        'job-pending': designTokens.colors.logistics.job.pending,
+        'job-assigned': designTokens.colors.logistics.job.assigned,
+        'job-inProgress': designTokens.colors.logistics.job.inProgress,
+        'job-completed': designTokens.colors.logistics.job.completed,
+        'job-cancelled': designTokens.colors.logistics.job.cancelled,
+        'job-delayed': designTokens.colors.logistics.job.delayed,
+        
+        'route-active': designTokens.colors.logistics.route.active,
+        'route-completed': designTokens.colors.logistics.route.completed,
+        'route-delayed': designTokens.colors.logistics.route.delayed,
+        'route-optimized': designTokens.colors.logistics.route.optimized,
+        'route-traffic': designTokens.colors.logistics.route.traffic,
+        
+        'priority-low': designTokens.colors.logistics.priority.low,
+        'priority-normal': designTokens.colors.logistics.priority.normal,
+        'priority-high': designTokens.colors.logistics.priority.high,
+        'priority-urgent': designTokens.colors.logistics.priority.urgent,
+        'priority-critical': designTokens.colors.logistics.priority.critical,
+        
+        // AI and prediction colors
+        'ai-high': designTokens.colors.ai.prediction.high,
+        'ai-medium': designTokens.colors.ai.prediction.medium,
+        'ai-low': designTokens.colors.ai.prediction.low,
+        'ai-processing': designTokens.colors.ai.prediction.processing,
       },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-      },
-      fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
-        '2xl': ['1.5rem', { lineHeight: '2rem' }],
-        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-        '5xl': ['3rem', { lineHeight: '1' }],
-        '6xl': ['3.75rem', { lineHeight: '1' }],
-        '7xl': ['4.5rem', { lineHeight: '1' }],
-        '8xl': ['6rem', { lineHeight: '1' }],
-        '9xl': ['8rem', { lineHeight: '1' }],
-      },
+      
+      // Typography from design tokens
+      fontFamily: designTokens.typography.fontFamilies,
+      fontSize: Object.fromEntries(
+        Object.entries(designTokens.typography.fontSizes).map(([key, value]) => [
+          key,
+          [value.fontSize, { lineHeight: value.lineHeight, letterSpacing: value.letterSpacing }]
+        ])
+      ),
+      fontWeight: designTokens.typography.fontWeights,
+      
+      // Spacing from design tokens
       spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-        '128': '32rem',
+        ...designTokens.spacing.base,
+        // Semantic spacing shortcuts
+        'micro-xs': designTokens.spacing.semantic.micro.xs,
+        'micro-sm': designTokens.spacing.semantic.micro.sm,
+        'micro-md': designTokens.spacing.semantic.micro.md,
+        'micro-lg': designTokens.spacing.semantic.micro.lg,
+        
+        'component-xs': designTokens.spacing.semantic.component.xs,
+        'component-sm': designTokens.spacing.semantic.component.sm,
+        'component-md': designTokens.spacing.semantic.component.md,
+        'component-lg': designTokens.spacing.semantic.component.lg,
+        'component-xl': designTokens.spacing.semantic.component.xl,
+        
+        'layout-xs': designTokens.spacing.semantic.layout.xs,
+        'layout-sm': designTokens.spacing.semantic.layout.sm,
+        'layout-md': designTokens.spacing.semantic.layout.md,
+        'layout-lg': designTokens.spacing.semantic.layout.lg,
+        'layout-xl': designTokens.spacing.semantic.layout.xl,
+        'layout-xxl': designTokens.spacing.semantic.layout.xxl,
+        
+        // Logistics-specific spacing
+        'dashboard-card-gap': designTokens.spacing.logistics.dashboard.cardGap,
+        'dashboard-card-padding': designTokens.spacing.logistics.dashboard.cardPadding,
+        'table-cell-padding': designTokens.spacing.logistics.table.cellPadding,
+        'form-field-spacing': designTokens.spacing.logistics.form.fieldSpacing,
+        'mobile-touch-target': designTokens.spacing.logistics.mobile.touchTarget,
       },
-      borderRadius: {
-        'none': '0px',
-        'sm': '0.125rem',
-        'DEFAULT': '0.25rem',
-        'md': '0.375rem',
-        'lg': '0.5rem',
-        'xl': '0.75rem',
-        '2xl': '1rem',
-        '3xl': '1.5rem',
-        'full': '9999px',
-      },
+      
+      // Border radius from design tokens
+      borderRadius: designTokens.spacing.borderRadius,
+      
+      // Shadows from design tokens
       boxShadow: {
-        'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        'DEFAULT': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-        '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-        'inner': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-        'none': 'none',
+        ...designTokens.shadows.base,
+        // Elevation system
+        'elevation-0': designTokens.shadows.elevation.surface[0],
+        'elevation-1': designTokens.shadows.elevation.surface[1],
+        'elevation-2': designTokens.shadows.elevation.surface[2],
+        'elevation-3': designTokens.shadows.elevation.surface[3],
+        'elevation-4': designTokens.shadows.elevation.surface[4],
+        'elevation-5': designTokens.shadows.elevation.surface[5],
+        'elevation-6': designTokens.shadows.elevation.surface[6],
+        
+        // Interactive states
+        'hover': designTokens.shadows.elevation.interactive.hover,
+        'active': designTokens.shadows.elevation.interactive.active,
+        'focus': designTokens.shadows.elevation.interactive.focus,
+        
+        // Component shadows
+        'card': designTokens.shadows.elevation.component.card,
+        'card-hover': designTokens.shadows.elevation.component.cardHover,
+        'button': designTokens.shadows.elevation.component.button,
+        'button-hover': designTokens.shadows.elevation.component.buttonHover,
+        'dropdown': designTokens.shadows.elevation.component.dropdown,
+        'modal': designTokens.shadows.elevation.component.modal,
+        
+        // Logistics-specific shadows
+        'metric-card': designTokens.shadows.logistics.dashboard.metricCard,
+        'map-marker': designTokens.shadows.logistics.map.marker,
+        'table-row-selected': designTokens.shadows.logistics.table.rowSelected,
+        'mobile-card': designTokens.shadows.logistics.mobile.mobileCard,
+        
+        // Focus rings
+        'focus-ring': designTokens.shadows.focus.default,
+        'focus-ring-strong': designTokens.shadows.focus.strong,
+        'focus-ring-offset': designTokens.shadows.focus.offset,
+        'focus-ring-error': designTokens.shadows.focus.error,
       },
+      
+      // Animations from design tokens
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-in': 'slideIn 0.3s ease-out',
-        'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        // Basic animations
+        'fade-in': `${designTokens.animations.keyframes.fadeIn.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.decelerate}`,
+        'fade-out': `${designTokens.animations.keyframes.fadeOut.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.accelerate}`,
+        'fade-in-up': `${designTokens.animations.keyframes.fadeInUp.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.decelerate}`,
+        'fade-in-down': `${designTokens.animations.keyframes.fadeInDown.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.decelerate}`,
+        'slide-in-right': `${designTokens.animations.keyframes.slideInRight.name} ${designTokens.animations.durations.moderate} ${designTokens.animations.easingFunctions.decelerate}`,
+        'slide-in-left': `${designTokens.animations.keyframes.slideInLeft.name} ${designTokens.animations.durations.moderate} ${designTokens.animations.easingFunctions.decelerate}`,
+        'scale-in': `${designTokens.animations.keyframes.scaleIn.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.decelerate}`,
+        'scale-out': `${designTokens.animations.keyframes.scaleOut.name} ${designTokens.animations.durations.normal} ${designTokens.animations.easingFunctions.accelerate}`,
+        
+        // Status and indicator animations
+        'pulse': `${designTokens.animations.keyframes.pulse.name} 2s ${designTokens.animations.easingFunctions.standard} infinite`,
+        'pulse-soft': `${designTokens.animations.keyframes.pulseSoft.name} 2s ${designTokens.animations.easingFunctions.standard} infinite`,
+        'pulse-scale': `${designTokens.animations.keyframes.pulseScale.name} 1.5s ${designTokens.animations.easingFunctions.standard} infinite`,
+        
+        // Utility animations
+        'spin': `${designTokens.animations.keyframes.spin.name} ${designTokens.animations.durations.loading} ${designTokens.animations.easingFunctions.linear} infinite`,
+        'bounce': `${designTokens.animations.keyframes.bounce.name} ${designTokens.animations.durations.slow} ${designTokens.animations.easingFunctions.bounce}`,
+        'shake': `${designTokens.animations.keyframes.shake.name} ${designTokens.animations.durations.moderate} ${designTokens.animations.easingFunctions.standard}`,
+        
+        // Logistics-specific animations
+        'driver-available': designTokens.animations.logistics.realtime.driverAvailable.animation,
+        'driver-busy': designTokens.animations.logistics.realtime.driverBusy.animation,
+        'data-update': designTokens.animations.logistics.realtime.dataUpdate.animation,
+        'metric-update': designTokens.animations.logistics.dashboard.metricUpdate.animation,
+        'loading-dots': `${designTokens.animations.keyframes.loadingDots.name} 1.4s ${designTokens.animations.easingFunctions.standard} infinite both`,
       },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideIn: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        pulseSoft: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
-        },
-      },
-      screens: {
-        'xs': '475px',
-        'sm': '640px',
-        'md': '768px',
-        'lg': '1024px',
-        'xl': '1280px',
-        '2xl': '1536px',
-      },
+      
+      // Keyframes from design tokens
+      keyframes: Object.fromEntries(
+        Object.entries(designTokens.animations.keyframes).map(([key, value]) => [
+          value.name,
+          value.keyframes
+        ])
+      ),
+      
+      // Transitions
+      transitionDuration: designTokens.animations.durations,
+      transitionTimingFunction: designTokens.animations.easingFunctions,
+      
+      // Responsive breakpoints
+      screens: breakpoints,
+      
+      // Grid system
+      gridTemplateColumns: Object.fromEntries(
+        Object.entries(grid.columns).map(([key, value]) => [
+          key,
+          `repeat(${value}, minmax(0, 1fr))`
+        ])
+      ),
+      
+      // Container configuration
       container: {
         center: true,
         padding: {
-          DEFAULT: '1rem',
-          sm: '2rem',
-          lg: '4rem',
-          xl: '5rem',
-          '2xl': '6rem',
+          DEFAULT: designTokens.spacing.base[4],
+          sm: designTokens.spacing.base[6],
+          md: designTokens.spacing.base[8],
+          lg: designTokens.spacing.base[12],
+          xl: designTokens.spacing.base[16],
+          '2xl': designTokens.spacing.base[20],
+        },
+        screens: {
+          sm: breakpoints.sm,
+          md: breakpoints.md,
+          lg: breakpoints.lg,
+          xl: breakpoints.xl,
+          '2xl': breakpoints['2xl'],
         },
       },
+      
+      // Max width utilities
+      maxWidth: grid.maxWidth,
+      
+      // Z-index scale
+      zIndex: designTokens.spacing.zIndex,
     },
   },
   plugins: [

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react'
 import { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table'
 import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import { VirtualizedTable } from '../../Table/VirtualizedTable'
@@ -83,7 +83,7 @@ export const ActiveJobsTable: React.FC<ActiveJobsTableProps> = ({
     onReassignDriver
   })
 
-  // Debounced search
+  // Debounced search with useMemo for performance
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -91,44 +91,73 @@ export const ActiveJobsTable: React.FC<ActiveJobsTableProps> = ({
     }, 300)
     return () => clearTimeout(timer)
   }, [searchTerm])
+  
+  // Performance monitoring
+  const renderStartTime = useRef<number>(0)
+  useEffect(() => {
+    renderStartTime.current = performance.now()
+  })
+  
+  useEffect(() => {
+    const renderTime = performance.now() - renderStartTime.current
+    if (renderTime > 16) { // Log slow renders (>16ms for 60fps)
+      console.warn(`ActiveJobsTable slow render: ${renderTime.toFixed(2)}ms for ${jobs.length} jobs`)
+    }
+  })
 
-  // Filter and process jobs data
+  // Optimized filter and process jobs data with early exits
   const processedJobs = useMemo(() => {
     let filteredJobs = jobs.map(getJobWithOptimisticUpdate)
+    
+    // Early exit if no filters applied
+    const hasSearchTerm = Boolean(debouncedSearchTerm)
+    const hasStatusFilter = Boolean(filters?.status?.length)
+    const hasPriorityFilter = Boolean(filters?.priority?.length)
+    const hasDriverFilter = Boolean(filters?.assignedDriver?.length)
+    
+    if (!hasSearchTerm && !hasStatusFilter && !hasPriorityFilter && !hasDriverFilter) {
+      return filteredJobs
+    }
 
-    // Apply search filter
-    if (debouncedSearchTerm) {
+    // Apply search filter with pre-computed search terms
+    if (hasSearchTerm) {
       const searchLower = debouncedSearchTerm.toLowerCase()
-      filteredJobs = filteredJobs.filter(job =>
-        job.id.toLowerCase().includes(searchLower) ||
-        job.customer.toLowerCase().includes(searchLower) ||
-        job.pickup.address.toLowerCase().includes(searchLower) ||
-        job.dropoff.address.toLowerCase().includes(searchLower) ||
-        job.assignedDriver?.name.toLowerCase().includes(searchLower)
-      )
+      filteredJobs = filteredJobs.filter(job => {
+        // Use some() for early exit on first match
+        return [
+          job.id,
+          job.customer,
+          job.pickup.address,
+          job.dropoff.address,
+          job.assignedDriver?.name || ''
+        ].some(field => field.toLowerCase().includes(searchLower))
+      })
     }
 
-    // Apply status filters
-    if (filters?.status?.length) {
-      filteredJobs = filteredJobs.filter(job => filters.status!.includes(job.status))
+    // Apply status filters with Set for O(1) lookup
+    if (hasStatusFilter) {
+      const statusSet = new Set(filters.status)
+      filteredJobs = filteredJobs.filter(job => statusSet.has(job.status))
     }
 
-    // Apply priority filters
-    if (filters?.priority?.length) {
-      filteredJobs = filteredJobs.filter(job => filters.priority!.includes(job.priority))
+    // Apply priority filters with Set for O(1) lookup
+    if (hasPriorityFilter) {
+      const prioritySet = new Set(filters.priority)
+      filteredJobs = filteredJobs.filter(job => prioritySet.has(job.priority))
     }
 
-    // Apply driver filters
-    if (filters?.assignedDriver?.length) {
+    // Apply driver filters with Set for O(1) lookup
+    if (hasDriverFilter) {
+      const driverSet = new Set(filters.assignedDriver)
       filteredJobs = filteredJobs.filter(job => 
-        job.assignedDriver && filters.assignedDriver!.includes(job.assignedDriver.id)
+        job.assignedDriver && driverSet.has(job.assignedDriver.id)
       )
     }
 
     return filteredJobs
   }, [jobs, getJobWithOptimisticUpdate, debouncedSearchTerm, filters])
 
-  // Table columns definition
+  // Memoized table columns definition with stable references
   const columns = useMemo<ColumnDef<JobRecord>[]>(() => [
     {
       id: 'select',
@@ -156,55 +185,63 @@ export const ActiveJobsTable: React.FC<ActiveJobsTableProps> = ({
     {
       accessorKey: 'id',
       header: 'Job ID',
-      cell: ({ getValue }) => (
-        <span className="font-mono text-sm font-medium">
-          {getValue<string>()}
-        </span>
-      ),
+      cell: memo(function JobIdCell({ getValue }) {
+        return (
+          <span className="font-mono text-sm font-medium">
+            {getValue<string>()}
+          </span>
+        )
+      }),
       size: 120,
     },
     {
       accessorKey: 'customer',
       header: 'Customer',
-      cell: ({ getValue }) => (
-        <span className="font-medium text-gray-900">
-          {getValue<string>()}
-        </span>
-      ),
+      cell: memo(function CustomerCell({ getValue }) {
+        return (
+          <span className="font-medium text-gray-900">
+            {getValue<string>()}
+          </span>
+        )
+      }),
       size: 150,
     },
     {
       accessorKey: 'pickup.address',
       header: 'Pickup',
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <div className="text-sm font-medium text-gray-900 truncate">
-            {row.original.pickup.address}
-          </div>
-          {row.original.pickup.scheduledTime && (
-            <div className="text-xs text-gray-500">
-              {format(new Date(row.original.pickup.scheduledTime), 'HH:mm')}
+      cell: memo(function PickupCell({ row }) {
+        return (
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {row.original.pickup.address}
             </div>
-          )}
-        </div>
-      ),
+            {row.original.pickup.scheduledTime && (
+              <div className="text-xs text-gray-500">
+                {format(new Date(row.original.pickup.scheduledTime), 'HH:mm')}
+              </div>
+            )}
+          </div>
+        )
+      }),
       size: 200,
     },
     {
       accessorKey: 'dropoff.address',
       header: 'Delivery',
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <div className="text-sm font-medium text-gray-900 truncate">
-            {row.original.dropoff.address}
-          </div>
-          {row.original.dropoff.scheduledTime && (
-            <div className="text-xs text-gray-500">
-              {format(new Date(row.original.dropoff.scheduledTime), 'HH:mm')}
+      cell: memo(function DropoffCell({ row }) {
+        return (
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {row.original.dropoff.address}
             </div>
-          )}
-        </div>
-      ),
+            {row.original.dropoff.scheduledTime && (
+              <div className="text-xs text-gray-500">
+                {format(new Date(row.original.dropoff.scheduledTime), 'HH:mm')}
+              </div>
+            )}
+          </div>
+        )
+      }),
       size: 200,
     },
     {
@@ -414,6 +451,10 @@ export const ActiveJobsTable: React.FC<ActiveJobsTableProps> = ({
           }
           rowClassName={getRowClassName}
           stickyHeader
+          overscan={10}
+          enableBuffering={true}
+          useRequestAnimationFrame={true}
+          variableRowHeight={false}
         />
 
         {/* Drag Overlay */}

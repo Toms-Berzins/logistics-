@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useEffect, forwardRef } from 'react'
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window'
+import React, { useMemo, useRef, useEffect, forwardRef, useCallback, memo } from 'react'
+import { FixedSizeList as List, ListChildComponentProps, VariableSizeList as VariableList } from 'react-window'
+import { areEqual } from 'react-window'
 import {
   useReactTable,
   getCoreRowModel,
@@ -33,6 +34,11 @@ interface VirtualizedTableProps<T> {
   rowClassName?: (row: T, index: number) => string
   onScroll?: (scrollTop: number) => void
   estimatedRowHeight?: number
+  variableRowHeight?: boolean
+  getRowHeight?: (index: number) => number
+  enableBuffering?: boolean
+  bufferSize?: number
+  useRequestAnimationFrame?: boolean
 }
 
 function VirtualizedTableInner<T>({
@@ -54,9 +60,16 @@ function VirtualizedTableInner<T>({
   stickyHeader = true,
   rowClassName,
   onScroll,
-  estimatedRowHeight
+  estimatedRowHeight,
+  variableRowHeight = false,
+  getRowHeight,
+  enableBuffering = true,
+  bufferSize = 50,
+  useRequestAnimationFrame = true
 }: VirtualizedTableProps<T>) {
-  const listRef = useRef<List>(null)
+  const listRef = useRef<List | VariableList>(null)
+  const scrollingRef = useRef(false)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
   
   const table = useReactTable({
     data,
@@ -77,41 +90,68 @@ function VirtualizedTableInner<T>({
 
   const { rows } = table.getRowModel()
   const headers = table.getHeaderGroups()[0]?.headers || []
+  
+  // Memoize processed data to prevent unnecessary re-renders
+  const memoizedRows = useMemo(() => rows, [rows])
+  const memoizedHeaders = useMemo(() => headers, [headers])
 
-  // Scroll to top when data changes
+  // Scroll to top when data changes with debouncing
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollToItem(0, 'start')
+    const scrollToTop = () => {
+      if (listRef.current && !scrollingRef.current) {
+        if (useRequestAnimationFrame) {
+          requestAnimationFrame(() => {
+            listRef.current?.scrollToItem?.(0, 'start')
+          })
+        } else {
+          listRef.current.scrollToItem(0, 'start')
+        }
+      }
     }
-  }, [data.length, columnFilters, sorting])
+    
+    const timeoutId = setTimeout(scrollToTop, 100)
+    return () => clearTimeout(timeoutId)
+  }, [data.length, columnFilters, sorting, useRequestAnimationFrame])
 
-  const Row = ({ index, style }: ListChildComponentProps) => {
-    const row = rows[index]
-    const originalData = row.original
-
+  // Memoized row component for better performance
+  const Row = memo(({ index, style }: ListChildComponentProps) => {
+    const row = memoizedRows[index]
     if (!row) return null
+    
+    const originalData = row.original
+    const cells = row.getVisibleCells()
+
+    const handleClick = useCallback(() => {
+      onRowClick?.(originalData)
+    }, [originalData])
+
+    const handleDoubleClick = useCallback(() => {
+      onRowDoubleClick?.(originalData)
+    }, [originalData])
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onRowClick?.(originalData)
+      }
+    }, [originalData])
 
     return (
       <div
         style={style}
         className={cn(
-          'flex border-b border-gray-200 hover:bg-gray-50 transition-colors',
+          'flex border-b border-gray-200 hover:bg-gray-50 transition-colors will-change-transform',
           rowClassName?.(originalData, index),
           'cursor-pointer'
         )}
-        onClick={() => onRowClick?.(originalData)}
-        onDoubleClick={() => onRowDoubleClick?.(originalData)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         role="row"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onRowClick?.(originalData)
-          }
-        }}
+        onKeyDown={handleKeyDown}
       >
-        {row.getVisibleCells().map((cell, cellIndex) => {
-          const column = headers[cellIndex]
+        {cells.map((cell, cellIndex) => {
+          const column = memoizedHeaders[cellIndex]
           const width = column?.getSize() || 150
 
           return (
@@ -133,11 +173,36 @@ function VirtualizedTableInner<T>({
         })}
       </div>
     )
-  }
+  }, areEqual)
 
-  const handleScroll = ({ scrollTop }: { scrollTop: number }) => {
-    onScroll?.(scrollTop)
-  }
+  // Optimized scroll handler with throttling
+  const handleScroll = useCallback(({ scrollTop }: { scrollTop: number }) => {
+    scrollingRef.current = true
+    
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollingRef.current = false
+    }, 150)
+    
+    if (useRequestAnimationFrame) {
+      requestAnimationFrame(() => {
+        onScroll?.(scrollTop)
+      })
+    } else {
+      onScroll?.(scrollTop)
+    }
+  }, [onScroll, useRequestAnimationFrame])
+  
+  // Row height getter for variable sizing
+  const getItemSize = useCallback((index: number) => {
+    if (variableRowHeight && getRowHeight) {
+      return getRowHeight(index)
+    }
+    return estimatedRowHeight || rowHeight
+  }, [variableRowHeight, getRowHeight, estimatedRowHeight, rowHeight])
 
   if (loading) {
     return (
@@ -164,8 +229,8 @@ function VirtualizedTableInner<T>({
     <div className={cn('border border-gray-200 rounded-lg overflow-hidden', className)}>
       {/* Header */}
       {stickyHeader && (
-        <div className="flex bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-          {headers.map((header) => {
+        <div className="flex bg-gray-50 border-b border-gray-200 sticky top-0 z-10 will-change-transform">
+          {memoizedHeaders.map((header) => {
             const width = header.getSize()
             const canSort = header.column.getCanSort()
             const isSorted = header.column.getIsSorted()
@@ -222,19 +287,37 @@ function VirtualizedTableInner<T>({
       )}
 
       {/* Virtual List */}
-      <List
-        ref={listRef}
-        height={height}
-        itemCount={rows.length}
-        itemSize={estimatedRowHeight || rowHeight}
-        overscanCount={overscan}
-        onScroll={handleScroll}
-        role="grid"
-        aria-rowcount={rows.length}
-        aria-colcount={headers.length}
-      >
-        {Row}
-      </List>
+      {variableRowHeight ? (
+        <VariableList
+          ref={listRef as React.RefObject<VariableList>}
+          height={height}
+          itemCount={memoizedRows.length}
+          itemSize={getItemSize}
+          overscanCount={overscan}
+          onScroll={handleScroll}
+          role="grid"
+          aria-rowcount={memoizedRows.length}
+          aria-colcount={memoizedHeaders.length}
+          useIsScrolling={enableBuffering}
+        >
+          {Row}
+        </VariableList>
+      ) : (
+        <List
+          ref={listRef as React.RefObject<List>}
+          height={height}
+          itemCount={memoizedRows.length}
+          itemSize={estimatedRowHeight || rowHeight}
+          overscanCount={overscan}
+          onScroll={handleScroll}
+          role="grid"
+          aria-rowcount={memoizedRows.length}
+          aria-colcount={memoizedHeaders.length}
+          useIsScrolling={enableBuffering}
+        >
+          {Row}
+        </List>
+      )}
     </div>
   )
 }
