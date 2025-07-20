@@ -55,7 +55,9 @@
       "Bash(node:*)",
       "Bash(copy .env.example .env)",
       "Bash(del test-shutdown.js)",
-      "Bash(ngrok http:*)"
+      "Bash(ngrok http:*)",
+      "Bash(ESLINT_NO_DEV_ERRORS=true npm run build)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

@@ -3,26 +3,60 @@
 import React, { useState, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui'
+import { useRealtimeConnection, useRealtimeStats, useRealtimeErrors } from '../../context/RealtimeProvider'
+import { ConnectionState, ConnectionQuality } from '../../lib/websocket'
 
 export interface ConnectionStatusProps {
-  isConnected: boolean
-  connectionQuality: 'excellent' | 'good' | 'poor' | 'offline'
+  isConnected?: boolean
+  connectionQuality?: ConnectionQuality
   lastError?: { message: string; timestamp: Date }
   onRetry?: () => void
   className?: string
   showDetails?: boolean
+  useContext?: boolean // Whether to use the realtime context or props
 }
 
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
-  isConnected,
-  connectionQuality,
-  lastError,
-  onRetry,
+  isConnected: propIsConnected,
+  connectionQuality: propConnectionQuality,
+  lastError: propLastError,
+  onRetry: propOnRetry,
   className,
   showDetails = false,
+  useContext = true,
 }) => {
   const [isRetrying, setIsRetrying] = useState(false)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+
+  // Use context if enabled, otherwise use props
+  const contextConnection = useContext ? (() => {
+    try {
+      return useRealtimeConnection()
+    } catch {
+      return null
+    }
+  })() : null
+  
+  const contextStats = useContext ? (() => {
+    try {
+      return useRealtimeStats()
+    } catch {
+      return null
+    }
+  })() : null
+  
+  const contextErrors = useContext ? (() => {
+    try {
+      return useRealtimeErrors()
+    } catch {
+      return null
+    }
+  })() : null
+
+  const isConnected = useContext && contextConnection ? contextConnection.isConnected : propIsConnected ?? false
+  const connectionQuality = useContext && contextConnection ? contextConnection.connectionQuality : propConnectionQuality ?? 'offline'
+  const lastError = useContext && contextErrors ? contextErrors.lastError : propLastError
+  const onRetry = useContext && contextConnection ? contextConnection.reconnect : propOnRetry
 
   useEffect(() => {
     if (isConnected) {
@@ -133,6 +167,22 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       {showDetails && (
         <div className="flex flex-col text-xs text-neutral-500">
           <span>Last update: {formatLastUpdate()}</span>
+          {contextStats?.stats && (
+            <div className="flex flex-col gap-1 mt-1">
+              <span>Uptime: {Math.floor(contextStats.stats.uptime / 1000)}s</span>
+              <span>Messages: {contextStats.stats.messagesSent}/{contextStats.stats.messagesReceived}</span>
+              {contextStats.stats.pendingOptimisticUpdates > 0 && (
+                <span className="text-warning-600">
+                  Pending: {contextStats.stats.pendingOptimisticUpdates}
+                </span>
+              )}
+              {contextStats.stats.queuedMessages > 0 && (
+                <span className="text-warning-600">
+                  Queued: {contextStats.stats.queuedMessages}
+                </span>
+              )}
+            </div>
+          )}
           {lastError && (
             <span className="text-error-600">
               Error: {lastError.message}

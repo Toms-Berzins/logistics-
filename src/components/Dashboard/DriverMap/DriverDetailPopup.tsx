@@ -9,7 +9,7 @@ import {
   TruckIcon,
 } from '@heroicons/react/24/outline';
 import { DriverLocation } from '../../../types/driver';
-import { logisticsColors } from '../../../styles/tokens/colors';
+import { designTokens } from '../../../styles/design-system/tokens';
 
 interface DriverDetailPopupProps {
   driver: DriverLocation;
@@ -90,14 +90,25 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
     return 'Poor';
   };
 
-  const statusColor = logisticsColors.status[driver.status];
-  const vehicleColor = logisticsColors.vehicle[driver.vehicleType];
+  const getDriverStatusColor = (status: string) => {
+    switch (status) {
+      case 'available': return designTokens.colors.logistics.driver.available;
+      case 'busy': return designTokens.colors.logistics.driver.busy;
+      case 'offline': return designTokens.colors.logistics.driver.offline;
+      case 'en_route': return designTokens.colors.logistics.driver.enRoute;
+      case 'on_break': return designTokens.colors.logistics.driver.break;
+      case 'emergency': return designTokens.colors.logistics.driver.emergency;
+      default: return designTokens.colors.neutral[500];
+    }
+  };
+
+  const statusColor = getDriverStatusColor(driver.status);
 
   return (
     <>
       {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-normal ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -112,31 +123,31 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
         aria-labelledby="driver-detail-title"
         className={`
           fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-          bg-white rounded-xl shadow-2xl z-50 w-full max-w-md mx-4
-          transition-all duration-200 ease-out
+          bg-neutral-50 rounded-xl shadow-modal z-50 w-full max-w-md mx-4
+          transition-all duration-normal ease-out
           ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
           ${className}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between p-layout-sm border-b border-neutral-200">
+          <div className="flex items-center space-x-micro-md">
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white"
-              style={{ backgroundColor: statusColor.bg }}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-neutral-50"
+              style={{ backgroundColor: statusColor }}
             >
               <TruckIcon className="w-6 h-6" />
             </div>
             <div>
-              <h2 id="driver-detail-title" className="text-lg font-semibold text-gray-900">
+              <h2 id="driver-detail-title" className="text-lg font-semibold text-neutral-900">
                 {driver.name}
               </h2>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-micro-sm">
                 <div 
                   className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: statusColor.bg }}
+                  style={{ backgroundColor: statusColor }}
                 />
-                <span className="text-sm text-gray-600 capitalize">
+                <span className="text-sm text-neutral-600 capitalize">
                   {driver.status.replace('_', ' ')}
                 </span>
               </div>
@@ -146,67 +157,66 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
           <button
             ref={closeButtonRef}
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-micro-sm hover:bg-neutral-100 rounded-lg transition-colors duration-fast focus-ring"
             aria-label="Close driver details"
           >
-            <XMarkIcon className="w-5 h-5 text-gray-500" />
+            <XMarkIcon className="w-5 h-5 text-neutral-500" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-layout-sm space-y-layout-sm">
           {/* Vehicle Information */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-between p-component-sm bg-neutral-100 rounded-lg">
+            <div className="flex items-center space-x-micro-md">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
-                style={{ backgroundColor: vehicleColor }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-50 text-sm bg-primary-600"
               >
                 {driver.vehicleType.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900 capitalize">
+                <p className="text-sm font-medium text-neutral-900 capitalize">
                   {driver.vehicleType}
                 </p>
-                <p className="text-xs text-gray-500">Vehicle ID: {driver.id.slice(-8)}</p>
+                <p className="text-xs text-neutral-500">Vehicle ID: {driver.id.slice(-8)}</p>
               </div>
             </div>
             
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-neutral-900">
                 {driver.metadata.speed.toFixed(0)} km/h
               </p>
-              <p className="text-xs text-gray-500">Current speed</p>
+              <p className="text-xs text-neutral-500">Current speed</p>
             </div>
           </div>
 
           {/* Current Delivery */}
           {driver.currentDelivery && (
-            <div className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+            <div className="border border-warning-200 bg-warning-50 rounded-lg p-component-sm">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-orange-900">Active Delivery</h3>
-                  <p className="text-sm text-orange-800 mt-1">
+                  <h3 className="text-sm font-medium text-warning-900">Active Delivery</h3>
+                  <p className="text-sm text-warning-800 mt-1">
                     {driver.currentDelivery.customerName}
                   </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <MapPinIcon className="w-4 h-4 text-orange-600" />
-                    <p className="text-xs text-orange-700">
+                  <div className="flex items-center space-x-micro-sm mt-micro-sm">
+                    <MapPinIcon className="w-4 h-4 text-warning-600" />
+                    <p className="text-xs text-warning-700">
                       {driver.currentDelivery.address}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <ClockIcon className="w-4 h-4 text-orange-600" />
-                    <p className="text-xs text-orange-700">
+                  <div className="flex items-center space-x-micro-sm mt-micro-xs">
+                    <ClockIcon className="w-4 h-4 text-warning-600" />
+                    <p className="text-xs text-warning-700">
                       ETA: {driver.currentDelivery.estimatedArrival.toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
                 <div className={`
-                  px-2 py-1 rounded text-xs font-medium
-                  ${driver.currentDelivery.priority === 'high' ? 'bg-red-100 text-red-800' :
-                    driver.currentDelivery.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'}
+                  px-micro-sm py-micro-xs rounded text-xs font-medium
+                  ${driver.currentDelivery.priority === 'high' ? 'bg-priority-urgent text-neutral-50' :
+                    driver.currentDelivery.priority === 'medium' ? 'bg-priority-high text-neutral-50' :
+                    'bg-priority-low text-neutral-50'}
                 `}>
                   {driver.currentDelivery.priority}
                 </div>
@@ -215,49 +225,49 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
           )}
 
           {/* Location & Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-component-sm">
+            <div className="space-y-micro-md">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
                   Location
                 </p>
-                <p className="text-sm text-gray-900 font-mono">
+                <p className="text-sm text-neutral-900 font-mono">
                   {driver.lat.toFixed(6)}, {driver.lng.toFixed(6)}
                 </p>
               </div>
               
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
                   Last Update
                 </p>
-                <p className="text-sm text-gray-900">
+                <p className="text-sm text-neutral-900">
                   {formatLastUpdate(driver.lastUpdate)}
                 </p>
               </div>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-micro-md">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
                   Battery
                 </span>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-micro-xs">
                   <span className="text-sm font-medium">
                     {getBatteryIcon(driver.metadata.batteryLevel)}
                   </span>
-                  <span className="text-sm text-gray-900">
+                  <span className="text-sm text-neutral-900">
                     {driver.metadata.batteryLevel}%
                   </span>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
                   Signal
                 </span>
-                <div className="flex items-center space-x-1">
-                  <SignalIcon className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-900">
+                <div className="flex items-center space-x-micro-xs">
+                  <SignalIcon className="w-4 h-4 text-neutral-400" />
+                  <span className="text-sm text-neutral-900">
                     {getSignalStrength(driver.metadata.accuracy)}
                   </span>
                 </div>
@@ -266,36 +276,36 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
           </div>
 
           {/* Technical Details */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Technical Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="bg-neutral-100 rounded-lg p-component-sm">
+            <h3 className="text-sm font-medium text-neutral-900 mb-micro-md">Technical Details</h3>
+            <div className="grid grid-cols-2 gap-micro-md text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-500">Heading:</span>
-                <span className="text-gray-900">{driver.metadata.heading}°</span>
+                <span className="text-neutral-500">Heading:</span>
+                <span className="text-neutral-900">{driver.metadata.heading}°</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Accuracy:</span>
-                <span className="text-gray-900">{driver.metadata.accuracy}m</span>
+                <span className="text-neutral-500">Accuracy:</span>
+                <span className="text-neutral-900">{driver.metadata.accuracy}m</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Provider:</span>
-                <span className="text-gray-900">{driver.metadata.provider}</span>
+                <span className="text-neutral-500">Provider:</span>
+                <span className="text-neutral-900">{driver.metadata.provider}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Company:</span>
-                <span className="text-gray-900">{driver.companyId.slice(-8)}</span>
+                <span className="text-neutral-500">Company:</span>
+                <span className="text-neutral-900">{driver.companyId.slice(-8)}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="border-t border-gray-200 p-6">
-          <div className="flex space-x-3">
+        <div className="border-t border-neutral-200 p-layout-sm">
+          <div className="flex space-x-micro-md">
             {onCallDriver && (
               <button
                 onClick={() => onCallDriver(driver.id)}
-                className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="flex-1 flex items-center justify-center space-x-micro-sm bg-primary-600 text-neutral-50 py-micro-sm px-component-sm rounded-lg hover:bg-primary-700 transition-colors duration-fast focus-ring"
               >
                 <PhoneIcon className="w-4 h-4" />
                 <span>Call</span>
@@ -305,7 +315,7 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
             {onNavigateToDriver && (
               <button
                 onClick={() => onNavigateToDriver(driver)}
-                className="flex-1 flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                className="flex-1 flex items-center justify-center space-x-micro-sm bg-success-600 text-neutral-50 py-micro-sm px-component-sm rounded-lg hover:bg-success-700 transition-colors duration-fast focus-ring"
               >
                 <MapPinIcon className="w-4 h-4" />
                 <span>Navigate</span>
@@ -315,7 +325,7 @@ export const DriverDetailPopup: React.FC<DriverDetailPopupProps> = ({
             {onAssignDelivery && !driver.currentDelivery && (
               <button
                 onClick={() => onAssignDelivery(driver.id)}
-                className="flex-1 flex items-center justify-center space-x-2 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                className="flex-1 flex items-center justify-center space-x-micro-sm bg-warning-600 text-neutral-50 py-micro-sm px-component-sm rounded-lg hover:bg-warning-700 transition-colors duration-fast focus-ring"
               >
                 <TruckIcon className="w-4 h-4" />
                 <span>Assign</span>

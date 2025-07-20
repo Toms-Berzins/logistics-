@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface SubscriptionData {
@@ -17,7 +17,7 @@ interface SubscriptionData {
   };
 }
 
-export default function BillingPage() {
+function BillingPageContent() {
   const { isLoaded, isSignedIn } = useUser();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
@@ -175,6 +175,14 @@ export default function BillingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading...</div>}>
+      <BillingPageContent />
+    </Suspense>
   );
 }
 

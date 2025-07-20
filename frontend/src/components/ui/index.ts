@@ -24,5 +24,9 @@ export type { AlertProps } from './Alert'
 export { default as Loading, LoadingButton } from './Loading'
 export type { LoadingProps } from './Loading'
 
+// Performance and Loading Components
+export * from './LoadingSkeleton'
+export * from './LazyComponents'
+
 // Re-export utility functions
 export { cn } from '../../lib/utils'

@@ -1,0 +1,579 @@
+/**
+ * CSS Custom Properties for Design System Tokens
+ * Runtime theming support with fallback values
+ */
+
+:root {
+  /* ==========================================================================
+     BRAND COLORS
+     ========================================================================== */
+  
+  /* Primary brand colors */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #1E40AF;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e3a8a;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+  
+  /* Secondary brand colors */
+  --color-secondary-50: #f8fafc;
+  --color-secondary-100: #f1f5f9;
+  --color-secondary-200: #e2e8f0;
+  --color-secondary-300: #cbd5e1;
+  --color-secondary-400: #94a3b8;
+  --color-secondary-500: #64748b;
+  --color-secondary-600: #475569;
+  --color-secondary-700: #334155;
+  --color-secondary-800: #1e293b;
+  --color-secondary-900: #0f172a;
+  --color-secondary-950: #020617;
+
+  /* ==========================================================================
+     SEMANTIC COLORS
+     ========================================================================== */
+  
+  /* Success colors */
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-success-800: #166534;
+  --color-success-900: #14532d;
+  --color-success-950: #052e16;
+  
+  /* Warning colors */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+  --color-warning-950: #451a03;
+  
+  /* Error colors */
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-300: #fca5a5;
+  --color-error-400: #f87171;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-800: #991b1b;
+  --color-error-900: #7f1d1d;
+  --color-error-950: #450a0a;
+  
+  /* Info colors */
+  --color-info-50: #f0f9ff;
+  --color-info-100: #e0f2fe;
+  --color-info-200: #bae6fd;
+  --color-info-300: #7dd3fc;
+  --color-info-400: #38bdf8;
+  --color-info-500: #0ea5e9;
+  --color-info-600: #0284c7;
+  --color-info-700: #0369a1;
+  --color-info-800: #075985;
+  --color-info-900: #0c4a6e;
+  --color-info-950: #082f49;
+
+  /* ==========================================================================
+     NEUTRAL COLORS
+     ========================================================================== */
+  
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+  --color-neutral-950: #0a0a0a;
+
+  /* ==========================================================================
+     LOGISTICS OPERATIONAL COLORS
+     ========================================================================== */
+  
+  /* Driver status colors */
+  --color-driver-available: #22c55e;
+  --color-driver-busy: #f59e0b;
+  --color-driver-offline: #6b7280;
+  --color-driver-enRoute: #3b82f6;
+  --color-driver-break: #f97316;
+  --color-driver-emergency: #ef4444;
+  
+  /* Job status colors */
+  --color-job-pending: #6b7280;
+  --color-job-assigned: #3b82f6;
+  --color-job-inProgress: #f59e0b;
+  --color-job-completed: #22c55e;
+  --color-job-cancelled: #ef4444;
+  --color-job-delayed: #f97316;
+  
+  /* Route status colors */
+  --color-route-active: #3b82f6;
+  --color-route-completed: #22c55e;
+  --color-route-delayed: #ef4444;
+  --color-route-optimized: #8b5cf6;
+  --color-route-traffic: #f59e0b;
+  
+  /* Priority colors */
+  --color-priority-low: #22c55e;
+  --color-priority-normal: #3b82f6;
+  --color-priority-high: #f59e0b;
+  --color-priority-urgent: #ef4444;
+  --color-priority-critical: #7c2d12;
+  
+  /* AI prediction colors */
+  --color-ai-high: #059669;
+  --color-ai-medium: #ca8a04;
+  --color-ai-low: #dc2626;
+  --color-ai-processing: #8b5cf6;
+
+  /* ==========================================================================
+     SPACING SCALE
+     ========================================================================== */
+  
+  /* Base spacing scale (4px grid) */
+  --spacing-0: 0px;
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem;  /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem;    /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem;  /* 24px */
+  --spacing-7: 1.75rem; /* 28px */
+  --spacing-8: 2rem;    /* 32px */
+  --spacing-9: 2.25rem; /* 36px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-11: 2.75rem; /* 44px */
+  --spacing-12: 3rem;   /* 48px */
+  --spacing-14: 3.5rem; /* 56px */
+  --spacing-16: 4rem;   /* 64px */
+  --spacing-18: 4.5rem; /* 72px */
+  --spacing-20: 5rem;   /* 80px */
+  --spacing-24: 6rem;   /* 96px */
+  --spacing-28: 7rem;   /* 112px */
+  --spacing-32: 8rem;   /* 128px */
+  --spacing-36: 9rem;   /* 144px */
+  --spacing-40: 10rem;  /* 160px */
+  --spacing-44: 11rem;  /* 176px */
+  --spacing-48: 12rem;  /* 192px */
+  --spacing-52: 13rem;  /* 208px */
+  --spacing-56: 14rem;  /* 224px */
+  --spacing-60: 15rem;  /* 240px */
+  --spacing-64: 16rem;  /* 256px */
+  --spacing-72: 18rem;  /* 288px */
+  --spacing-80: 20rem;  /* 320px */
+  --spacing-96: 24rem;  /* 384px */
+  --spacing-128: 32rem; /* 512px */
+  
+  /* Semantic spacing shortcuts */
+  --spacing-micro-xs: var(--spacing-1);
+  --spacing-micro-sm: var(--spacing-2);
+  --spacing-micro-md: var(--spacing-3);
+  --spacing-micro-lg: var(--spacing-4);
+  
+  --spacing-component-xs: var(--spacing-2);
+  --spacing-component-sm: var(--spacing-3);
+  --spacing-component-md: var(--spacing-4);
+  --spacing-component-lg: var(--spacing-6);
+  --spacing-component-xl: var(--spacing-8);
+  
+  --spacing-layout-xs: var(--spacing-4);
+  --spacing-layout-sm: var(--spacing-6);
+  --spacing-layout-md: var(--spacing-8);
+  --spacing-layout-lg: var(--spacing-12);
+  --spacing-layout-xl: var(--spacing-16);
+  --spacing-layout-xxl: var(--spacing-24);
+  
+  /* Logistics-specific spacing */
+  --spacing-dashboard-card-gap: var(--spacing-6);
+  --spacing-dashboard-card-padding: var(--spacing-6);
+  --spacing-table-cell-padding: var(--spacing-3);
+  --spacing-form-field-spacing: var(--spacing-4);
+  --spacing-mobile-touch-target: var(--spacing-11);
+
+  /* ==========================================================================
+     TYPOGRAPHY
+     ========================================================================== */
+  
+  /* Font families */
+  --font-sans: 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  --font-display: 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', sans-serif;
+  
+  /* Font weights */
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+  
+  /* Font sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  --font-size-6xl: 3.75rem;
+  --font-size-7xl: 4.5rem;
+  --font-size-8xl: 6rem;
+  --font-size-9xl: 8rem;
+  
+  /* Line heights */
+  --line-height-xs: 1rem;
+  --line-height-sm: 1.25rem;
+  --line-height-base: 1.5rem;
+  --line-height-lg: 1.75rem;
+  --line-height-xl: 1.75rem;
+  --line-height-2xl: 2rem;
+  --line-height-3xl: 2.25rem;
+  --line-height-4xl: 2.5rem;
+  --line-height-5xl: 1;
+  --line-height-6xl: 1;
+  --line-height-7xl: 1;
+  --line-height-8xl: 1;
+  --line-height-9xl: 1;
+  
+  /* Letter spacing */
+  --letter-spacing-tighter: -0.05em;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+  --letter-spacing-widest: 0.1em;
+
+  /* ==========================================================================
+     SHADOWS AND ELEVATION
+     ========================================================================== */
+  
+  /* Base shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  --shadow-none: none;
+  
+  /* Elevation levels */
+  --elevation-0: var(--shadow-none);
+  --elevation-1: var(--shadow-xs);
+  --elevation-2: var(--shadow-sm);
+  --elevation-3: var(--shadow-md);
+  --elevation-4: var(--shadow-lg);
+  --elevation-5: var(--shadow-xl);
+  --elevation-6: var(--shadow-2xl);
+  
+  /* Interactive shadows */
+  --shadow-hover: var(--shadow-sm);
+  --shadow-active: var(--shadow-inner);
+  --shadow-focus: 0 0 0 2px rgb(59 130 246 / 0.5);
+  
+  /* Component shadows */
+  --shadow-card: var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-md);
+  --shadow-button: var(--shadow-xs);
+  --shadow-button-hover: var(--shadow-sm);
+  --shadow-dropdown: var(--shadow-lg);
+  --shadow-modal: var(--shadow-xl);
+  --shadow-tooltip: var(--shadow-md);
+  --shadow-popover: var(--shadow-lg);
+  
+  /* Focus rings */
+  --focus-ring: 0 0 0 2px rgb(59 130 246 / 0.5);
+  --focus-ring-strong: 0 0 0 3px rgb(59 130 246 / 0.6);
+  --focus-ring-offset: 0 0 0 2px rgb(255 255 255 / 1), 0 0 0 4px rgb(59 130 246 / 0.5);
+  --focus-ring-error: 0 0 0 2px rgb(239 68 68 / 0.5);
+
+  /* ==========================================================================
+     BORDER RADIUS
+     ========================================================================== */
+  
+  --radius-none: 0px;
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* ==========================================================================
+     ANIMATIONS
+     ========================================================================== */
+  
+  /* Duration scale */
+  --duration-instant: 0ms;
+  --duration-fastest: 75ms;
+  --duration-fast: 100ms;
+  --duration-normal: 150ms;
+  --duration-moderate: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+  --duration-extended: 700ms;
+  --duration-longest: 1000ms;
+  
+  /* Easing functions */
+  --easing-linear: linear;
+  --easing-ease: ease;
+  --easing-ease-in: ease-in;
+  --easing-ease-out: ease-out;
+  --easing-ease-in-out: ease-in-out;
+  --easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+  --easing-sharp: cubic-bezier(0.4, 0.0, 0.6, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Common transitions */
+  --transition-colors: color var(--duration-normal) var(--easing-standard), 
+                       background-color var(--duration-normal) var(--easing-standard), 
+                       border-color var(--duration-normal) var(--easing-standard);
+  --transition-transform: transform var(--duration-normal) var(--easing-standard);
+  --transition-opacity: opacity var(--duration-normal) var(--easing-standard);
+  --transition-shadow: box-shadow var(--duration-normal) var(--easing-standard);
+  --transition-all: all var(--duration-normal) var(--easing-standard);
+
+  /* ==========================================================================
+     BREAKPOINTS
+     ========================================================================== */
+  
+  --breakpoint-xs: 475px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ==========================================================================
+     Z-INDEX SCALE
+     ========================================================================== */
+  
+  --z-auto: auto;
+  --z-0: 0;
+  --z-10: 10;
+  --z-20: 20;
+  --z-30: 30;
+  --z-40: 40;
+  --z-50: 50;
+  --z-dropdown: 1000;
+  --z-sticky: 1010;
+  --z-tooltip: 1020;
+  --z-overlay: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-toast: 1060;
+
+  /* ==========================================================================
+     ACCESSIBILITY
+     ========================================================================== */
+  
+  /* Touch targets */
+  --touch-target-minimum: 44px;
+  --touch-target-comfortable: 48px;
+  --touch-target-large: 56px;
+  
+  /* Focus indicators */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-primary-500);
+  
+  /* Screen reader only */
+  --sr-only-position: absolute;
+  --sr-only-width: 1px;
+  --sr-only-height: 1px;
+  --sr-only-padding: 0;
+  --sr-only-margin: -1px;
+  --sr-only-overflow: hidden;
+  --sr-only-clip: rect(0, 0, 0, 0);
+  --sr-only-white-space: nowrap;
+  --sr-only-border: 0;
+}
+
+/* =============================================================================
+   DARK MODE OVERRIDES
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Invert neutral colors for dark mode */
+    --color-neutral-50: #0a0a0a;
+    --color-neutral-100: #171717;
+    --color-neutral-200: #262626;
+    --color-neutral-300: #404040;
+    --color-neutral-400: #525252;
+    --color-neutral-500: #737373;
+    --color-neutral-600: #a3a3a3;
+    --color-neutral-700: #d4d4d4;
+    --color-neutral-800: #e5e5e5;
+    --color-neutral-900: #f5f5f5;
+    --color-neutral-950: #fafafa;
+    
+    /* Adjust shadows for dark backgrounds */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* =============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================= */
+
+@media (prefers-contrast: high) {
+  :root {
+    /* Increase contrast ratios */
+    --color-primary-600: #000000;
+    --color-neutral-900: #000000;
+    --color-neutral-50: #ffffff;
+    
+    /* Stronger focus rings */
+    --focus-ring: 0 0 0 3px rgb(0 0 0 / 1);
+    --focus-ring-width: 3px;
+    
+    /* Remove subtle shadows */
+    --shadow-xs: 0 2px 4px 0 rgb(0 0 0 / 1);
+    --shadow-sm: 0 2px 6px 0 rgb(0 0 0 / 1);
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    /* Disable animations */
+    --duration-instant: 0ms;
+    --duration-fastest: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-moderate: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+    --duration-extended: 0ms;
+    --duration-longest: 0ms;
+    
+    /* Use linear easing */
+    --easing-standard: linear;
+    --easing-decelerate: linear;
+    --easing-accelerate: linear;
+    --easing-sharp: linear;
+    --easing-bounce: linear;
+    
+    /* Simplified transitions */
+    --transition-colors: none;
+    --transition-transform: none;
+    --transition-opacity: none;
+    --transition-shadow: none;
+    --transition-all: none;
+  }
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Screen reader only */
+.sr-only {
+  position: var(--sr-only-position);
+  width: var(--sr-only-width);
+  height: var(--sr-only-height);
+  padding: var(--sr-only-padding);
+  margin: var(--sr-only-margin);
+  overflow: var(--sr-only-overflow);
+  clip: var(--sr-only-clip);
+  white-space: var(--sr-only-white-space);
+  border: var(--sr-only-border);
+}
+
+.sr-only:focus,
+.sr-only:active {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: inherit;
+}
+
+/* Focus ring utilities */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.focus-ring-strong:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-strong);
+}
+
+.focus-ring-offset:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-offset);
+}
+
+.focus-ring-error:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-error);
+}
+
+/* Touch target utilities */
+.touch-target {
+  min-height: var(--touch-target-minimum);
+  min-width: var(--touch-target-minimum);
+}
+
+.touch-target-comfortable {
+  min-height: var(--touch-target-comfortable);
+  min-width: var(--touch-target-comfortable);
+}
+
+.touch-target-large {
+  min-height: var(--touch-target-large);
+  min-width: var(--touch-target-large);
+}
+
+/* Motion utilities */
+.motion-reduce {
+  animation: none !important;
+  transition: none !important;
+}
+
+.motion-safe {
+  animation: unset;
+  transition: unset;
+}
